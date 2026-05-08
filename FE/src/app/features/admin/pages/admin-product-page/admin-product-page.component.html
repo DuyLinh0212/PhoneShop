@@ -7,7 +7,7 @@
     <button class="btn-primary" (click)="openCreate()">+ Thêm sản phẩm</button>
   </div>
 
-  @if (errorMessage) {
+  @if (errorMessage && !showModal) {
     <p class="alert-error">{{ errorMessage }}</p>
   }
 
@@ -72,9 +72,12 @@
       <button class="modal-close" (click)="closeModal()">✕</button>
     </div>
     <div class="modal-body">
+      @if (errorMessage) {
+        <p class="alert-error-inline">{{ errorMessage }}</p>
+      }
       <div class="form-row">
         <label>Tên sản phẩm *</label>
-        <input [(ngModel)]="form.name" (blur)="generateSlug()" placeholder="iPhone 15 Pro Max" />
+        <input [(ngModel)]="form.name" (input)="generateSlug()" placeholder="iPhone 15 Pro Max" />
       </div>
       <div class="form-row">
         <label>Slug *</label>
@@ -84,18 +87,18 @@
         <div class="form-row">
           <label>Thương hiệu *</label>
           <select [(ngModel)]="form.brandId">
-            <option [value]="0" disabled>-- Chọn thương hiệu --</option>
+            <option [ngValue]="0" disabled>-- Chọn thương hiệu --</option>
             @for (b of brands; track b.id) {
-              <option [value]="b.id">{{ b.name }}</option>
+              <option [ngValue]="b.id">{{ b.name }}</option>
             }
           </select>
         </div>
         <div class="form-row">
           <label>Danh mục *</label>
           <select [(ngModel)]="form.categoryId">
-            <option [value]="0" disabled>-- Chọn danh mục --</option>
+            <option [ngValue]="0" disabled>-- Chọn danh mục --</option>
             @for (c of categories; track c.id) {
-              <option [value]="c.id">{{ c.name }}</option>
+              <option [ngValue]="c.id">{{ c.name }}</option>
             }
           </select>
         </div>

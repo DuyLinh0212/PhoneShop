@@ -42,27 +42,39 @@ export class AdminCategoryPageComponent implements OnInit {
 
   openCreate(): void {
     this.editingId = null;
+    this.errorMessage = '';
     this.form = this.emptyForm();
     this.showModal = true;
   }
 
   openEdit(cat: Category): void {
     this.editingId = cat.id;
+    this.errorMessage = '';
     this.form = { name: cat.name, slug: cat.slug, description: cat.description ?? '', isActive: cat.isActive };
     this.showModal = true;
   }
 
-  closeModal(): void { this.showModal = false; }
+  closeModal(): void {
+    this.showModal = false;
+    this.errorMessage = '';
+  }
 
   save(): void {
+    if (!this.form.name.trim()) { this.errorMessage = 'Tên danh mục không được để trống.'; return; }
+    if (!this.form.slug.trim()) { this.generateSlug(); }
     this.saving = true;
+    this.errorMessage = '';
+
     const obs = this.editingId !== null
       ? this.categoryService.update(this.editingId, this.form)
       : this.categoryService.create(this.form);
 
     obs.subscribe({
       next: () => { this.saving = false; this.showModal = false; this.load(); },
-      error: (err) => { this.saving = false; this.errorMessage = err?.error?.message ?? 'Lưu thất bại.'; }
+      error: (err) => {
+        this.saving = false;
+        this.errorMessage = err?.error?.message ?? err?.message ?? 'Lưu thất bại. Vui lòng thử lại.';
+      }
     });
   }
 
@@ -78,15 +90,14 @@ export class AdminCategoryPageComponent implements OnInit {
   }
 
   generateSlug(): void {
-    this.form = {
-      ...this.form,
-      slug: this.form.name
-        .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim().replace(/\s+/g, '-')
-    };
+    this.form.slug = this.form.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
   }
 
   private emptyForm(): CategoryRequest {

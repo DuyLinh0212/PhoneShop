@@ -42,27 +42,39 @@ export class AdminBrandPageComponent implements OnInit {
 
   openCreate(): void {
     this.editingId = null;
+    this.errorMessage = '';
     this.form = this.emptyForm();
     this.showModal = true;
   }
 
   openEdit(brand: Brand): void {
     this.editingId = brand.id;
+    this.errorMessage = '';
     this.form = { name: brand.name, slug: brand.slug, logo: brand.logo ?? '', isActive: brand.isActive };
     this.showModal = true;
   }
 
-  closeModal(): void { this.showModal = false; }
+  closeModal(): void {
+    this.showModal = false;
+    this.errorMessage = '';
+  }
 
   save(): void {
+    if (!this.form.name.trim()) { this.errorMessage = 'Tên thương hiệu không được để trống.'; return; }
+    if (!this.form.slug.trim()) { this.generateSlug(); }
     this.saving = true;
+    this.errorMessage = '';
+
     const obs = this.editingId !== null
       ? this.brandService.update(this.editingId, this.form)
       : this.brandService.create(this.form);
 
     obs.subscribe({
       next: () => { this.saving = false; this.showModal = false; this.load(); },
-      error: (err) => { this.saving = false; this.errorMessage = err?.error?.message ?? 'Lưu thất bại.'; }
+      error: (err) => {
+        this.saving = false;
+        this.errorMessage = err?.error?.message ?? err?.message ?? 'Lưu thất bại. Vui lòng thử lại.';
+      }
     });
   }
 
@@ -78,15 +90,14 @@ export class AdminBrandPageComponent implements OnInit {
   }
 
   generateSlug(): void {
-    this.form = {
-      ...this.form,
-      slug: this.form.name
-        .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim().replace(/\s+/g, '-')
-    };
+    this.form.slug = this.form.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
   }
 
   private emptyForm(): BrandRequest {

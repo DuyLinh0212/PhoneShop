@@ -48,25 +48,21 @@ export class AdminProductPageComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
     this.productService.getAdminProducts().subscribe({
-      next: (data) => {
-        this.products = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.message ?? 'Không thể tải danh sách sản phẩm.';
-        this.loading = false;
-      }
+      next: (data) => { this.products = data; this.loading = false; },
+      error: (err) => { this.errorMessage = err?.error?.message ?? 'Không thể tải danh sách sản phẩm.'; this.loading = false; }
     });
   }
 
   openCreate(): void {
     this.editingId = null;
+    this.errorMessage = '';
     this.form = this.emptyForm();
     this.showModal = true;
   }
 
   openEdit(product: Product): void {
     this.editingId = product.id;
+    this.errorMessage = '';
     this.form = {
       brandId: product.brandId,
       categoryId: product.categoryId,
@@ -83,49 +79,39 @@ export class AdminProductPageComponent implements OnInit {
 
   closeModal(): void {
     this.showModal = false;
+    this.errorMessage = '';
   }
 
   save(): void {
+    if (!this.form.name.trim()) { this.errorMessage = 'Tên sản phẩm không được để trống.'; return; }
+    if (!this.form.slug.trim()) { this.generateSlug(); }
+    if (!this.form.brandId) { this.errorMessage = 'Vui lòng chọn thương hiệu.'; return; }
+    if (!this.form.categoryId) { this.errorMessage = 'Vui lòng chọn danh mục.'; return; }
+
     this.saving = true;
+    this.errorMessage = '';
+
     const obs = this.editingId !== null
       ? this.productService.update(this.editingId, this.form)
       : this.productService.create(this.form);
 
     obs.subscribe({
-      next: () => {
-        this.saving = false;
-        this.showModal = false;
-        this.load();
-      },
+      next: () => { this.saving = false; this.showModal = false; this.load(); },
       error: (err) => {
         this.saving = false;
-        this.errorMessage = err?.error?.message ?? 'Lưu thất bại.';
+        this.errorMessage = err?.error?.message ?? err?.message ?? 'Lưu thất bại. Vui lòng thử lại.';
       }
     });
   }
 
-  confirmDelete(id: number): void {
-    this.deleteTargetId = id;
-    this.showConfirm = true;
-  }
-
-  cancelDelete(): void {
-    this.deleteTargetId = null;
-    this.showConfirm = false;
-  }
+  confirmDelete(id: number): void { this.deleteTargetId = id; this.showConfirm = true; }
+  cancelDelete(): void { this.deleteTargetId = null; this.showConfirm = false; }
 
   doDelete(): void {
     if (this.deleteTargetId === null) return;
     this.productService.delete(this.deleteTargetId).subscribe({
-      next: () => {
-        this.showConfirm = false;
-        this.deleteTargetId = null;
-        this.load();
-      },
-      error: (err) => {
-        this.errorMessage = err?.error?.message ?? 'Xóa thất bại.';
-        this.showConfirm = false;
-      }
+      next: () => { this.showConfirm = false; this.deleteTargetId = null; this.load(); },
+      error: (err) => { this.errorMessage = err?.error?.message ?? 'Xóa thất bại.'; this.showConfirm = false; }
     });
   }
 
@@ -142,15 +128,14 @@ export class AdminProductPageComponent implements OnInit {
   }
 
   generateSlug(): void {
-    this.form = {
-      ...this.form,
-      slug: this.form.name
-        .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim().replace(/\s+/g, '-')
-    };
+    this.form.slug = this.form.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
   }
 
   private emptyForm(): ProductRequest {
