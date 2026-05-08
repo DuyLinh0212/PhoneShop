@@ -26,7 +26,7 @@ Dự án thuộc Đồ án môn học Công Nghệ Java - Trường Đại học
 ### 🛒 Dành cho Khách hàng
 * **Mua sắm:** Tìm kiếm, lọc sản phẩm (theo hãng, giá, dung lượng), xem chi tiết cấu hình.
 * **Giỏ hàng & Đơn hàng:** Quản lý giỏ hàng, đặt hàng, tùy chọn phương thức thanh toán (COD, Online).
-* **Hậu mãi:** Theo dõi trạng thái đơn hàng realtime, đánh giá & nhận xét sản phẩm, yêu cầu đổi trả.
+* **1 Số chức năng khác:** Theo dõi trạng thái đơn hàng realtime, đánh giá & nhận xét sản phẩm, yêu cầu đổi trả.
 
 ### 💼 Dành cho Nhân viên & Admin
 * **Quản lý Kho & Sản phẩm:** Thêm/sửa/xóa sản phẩm, quản lý các biến thể (Màu sắc, RAM, ROM), theo dõi tồn kho.
