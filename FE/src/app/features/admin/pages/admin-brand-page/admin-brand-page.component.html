@@ -1,0 +1,107 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Quản lý thương hiệu</h2>
+      <p class="page-sub">Tổng: {{ brands.length }} thương hiệu</p>
+    </div>
+    <button class="btn-primary" (click)="openCreate()">+ Thêm thương hiệu</button>
+  </div>
+
+  @if (errorMessage) {
+    <p class="alert-error">{{ errorMessage }}</p>
+  }
+
+  @if (loading) {
+    <p class="state-msg">Đang tải...</p>
+  } @else if (brands.length === 0) {
+    <p class="state-msg">Chưa có thương hiệu nào.</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Logo</th>
+            <th>Tên thương hiệu</th>
+            <th>Slug</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (b of brands; track b.id) {
+            <tr>
+              <td class="col-id">{{ b.id }}</td>
+              <td class="col-img">
+                @if (b.logo) {
+                  <img [src]="b.logo" [alt]="b.name" />
+                } @else {
+                  <span class="no-logo">—</span>
+                }
+              </td>
+              <td class="col-name">{{ b.name }}</td>
+              <td class="col-slug">{{ b.slug }}</td>
+              <td>
+                <span [class]="b.isActive ? 'badge-active' : 'badge-inactive'">
+                  {{ b.isActive ? 'Hoạt động' : 'Ẩn' }}
+                </span>
+              </td>
+              <td class="col-actions">
+                <button class="btn-edit" (click)="openEdit(b)">Sửa</button>
+                <button class="btn-delete" (click)="confirmDelete(b.id)">Xóa</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (showModal) {
+  <div class="overlay" (click)="closeModal()"></div>
+  <div class="modal">
+    <div class="modal-header">
+      <h3>{{ editingId !== null ? 'Cập nhật thương hiệu' : 'Thêm thương hiệu mới' }}</h3>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Tên thương hiệu *</label>
+        <input [(ngModel)]="form.name" (blur)="generateSlug()" placeholder="Apple" />
+      </div>
+      <div class="form-row">
+        <label>Slug *</label>
+        <input [(ngModel)]="form.slug" placeholder="apple" />
+      </div>
+      <div class="form-row">
+        <label>Logo (URL)</label>
+        <input [(ngModel)]="form.logo" placeholder="https://..." />
+        @if (form.logo) {
+          <img class="logo-preview" [src]="form.logo" alt="preview" />
+        }
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="form.isActive" />
+        Hoạt động
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeModal()">Hủy</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving">
+        {{ saving ? 'Đang lưu...' : (editingId !== null ? 'Cập nhật' : 'Thêm mới') }}
+      </button>
+    </div>
+  </div>
+}
+
+@if (showConfirm) {
+  <div class="overlay" (click)="cancelDelete()"></div>
+  <div class="confirm-dialog">
+    <p>Bạn có chắc muốn xóa thương hiệu này?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelDelete()">Hủy</button>
+      <button class="btn-delete" (click)="doDelete()">Xóa</button>
+    </div>
+  </div>
+}

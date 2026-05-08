@@ -4,6 +4,9 @@ import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { userLayoutGuard } from './core/guards/user-layout.guard';
+import { AdminBrandPageComponent } from './features/admin/pages/admin-brand-page/admin-brand-page.component';
+import { AdminCategoryPageComponent } from './features/admin/pages/admin-category-page/admin-category-page.component';
+import { AdminProductPageComponent } from './features/admin/pages/admin-product-page/admin-product-page.component';
 import { LoginPageComponent } from './features/auth/pages/login-page/login-page.component';
 import { RegisterPageComponent } from './features/auth/pages/register-page/register-page.component';
 import { ProductListPageComponent } from './features/product/pages/product-list-page/product-list-page.component';
@@ -25,7 +28,9 @@ export const routes: Routes = [
     component: AdminLayoutComponent,
     canActivate: [authGuard, adminGuard],
     children: [
-      { path: 'products', component: ProductListPageComponent, data: { viewMode: 'admin' } },
+      { path: 'products', component: AdminProductPageComponent },
+      { path: 'categories', component: AdminCategoryPageComponent },
+      { path: 'brands', component: AdminBrandPageComponent },
       { path: '', pathMatch: 'full', redirectTo: 'products' }
     ]
   },

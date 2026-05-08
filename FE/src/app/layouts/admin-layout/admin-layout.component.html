@@ -1,15 +1,17 @@
 <div class="admin-shell">
   <aside class="admin-sidebar">
     <p class="sidebar-title">ADMIN PANEL</p>
-    <h1 class="sidebar-heading">Quan tri he thong</h1>
+    <h1 class="sidebar-heading">Quản trị hệ thống</h1>
 
     <nav class="sidebar-nav">
-      <a
-        routerLink="/admin/products"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >
-        Quan ly san pham
+      <a routerLink="/admin/products" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        Sản phẩm
+      </a>
+      <a routerLink="/admin/categories" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        Danh mục
+      </a>
+      <a routerLink="/admin/brands" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        Thương hiệu
       </a>
     </nav>
   </aside>
@@ -17,11 +19,10 @@
   <div class="admin-main">
     <header class="admin-header">
       <div class="header-info">
-        <p class="header-label">Trang nghiep vu</p>
-        <p class="header-user">Nguoi dung: {{ user()?.fullName }}</p>
+        <p class="header-label">Trang nghiệp vụ</p>
+        <p class="header-user">{{ user()?.fullName }}</p>
       </div>
-
-      <button type="button" (click)="logout()">Dang xuat</button>
+      <button type="button" (click)="logout()">Đăng xuất</button>
     </header>
 
     <main class="admin-content">

@@ -1,0 +1,98 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Quản lý danh mục</h2>
+      <p class="page-sub">Tổng: {{ categories.length }} danh mục</p>
+    </div>
+    <button class="btn-primary" (click)="openCreate()">+ Thêm danh mục</button>
+  </div>
+
+  @if (errorMessage) {
+    <p class="alert-error">{{ errorMessage }}</p>
+  }
+
+  @if (loading) {
+    <p class="state-msg">Đang tải...</p>
+  } @else if (categories.length === 0) {
+    <p class="state-msg">Chưa có danh mục nào.</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tên danh mục</th>
+            <th>Slug</th>
+            <th>Mô tả</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of categories; track c.id) {
+            <tr>
+              <td class="col-id">{{ c.id }}</td>
+              <td class="col-name">{{ c.name }}</td>
+              <td class="col-slug">{{ c.slug }}</td>
+              <td class="col-desc">{{ c.description || '—' }}</td>
+              <td>
+                <span [class]="c.isActive ? 'badge-active' : 'badge-inactive'">
+                  {{ c.isActive ? 'Hoạt động' : 'Ẩn' }}
+                </span>
+              </td>
+              <td class="col-actions">
+                <button class="btn-edit" (click)="openEdit(c)">Sửa</button>
+                <button class="btn-delete" (click)="confirmDelete(c.id)">Xóa</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (showModal) {
+  <div class="overlay" (click)="closeModal()"></div>
+  <div class="modal">
+    <div class="modal-header">
+      <h3>{{ editingId !== null ? 'Cập nhật danh mục' : 'Thêm danh mục mới' }}</h3>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Tên danh mục *</label>
+        <input [(ngModel)]="form.name" (blur)="generateSlug()" placeholder="Điện thoại thông minh" />
+      </div>
+      <div class="form-row">
+        <label>Slug *</label>
+        <input [(ngModel)]="form.slug" placeholder="dien-thoai-thong-minh" />
+      </div>
+      <div class="form-row">
+        <label>Mô tả</label>
+        <textarea [(ngModel)]="form.description" rows="3" placeholder="Mô tả danh mục..."></textarea>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="form.isActive" />
+        Hoạt động
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeModal()">Hủy</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving">
+        {{ saving ? 'Đang lưu...' : (editingId !== null ? 'Cập nhật' : 'Thêm mới') }}
+      </button>
+    </div>
+  </div>
+}
+
+@if (showConfirm) {
+  <div class="overlay" (click)="cancelDelete()"></div>
+  <div class="confirm-dialog">
+    <p>Bạn có chắc muốn xóa danh mục này?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelDelete()">Hủy</button>
+      <button class="btn-delete" (click)="doDelete()">Xóa</button>
+    </div>
+  </div>
+}

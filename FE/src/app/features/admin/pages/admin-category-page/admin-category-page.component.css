@@ -1,0 +1,183 @@
+.page { padding: 0; }
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.page-title { margin: 0; font-size: 1.25rem; color: #0f172a; }
+.page-sub { margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem; }
+
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.7rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.state-msg { color: #64748b; padding: 2rem 0; text-align: center; }
+
+.table-wrap { overflow-x: auto; border-radius: 0.6rem; border: 1px solid #e2e8f0; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th {
+  background: #f8fafc;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #334155;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #fafbfc; }
+
+.col-id { color: #94a3b8; font-size: 0.8rem; }
+.col-name { font-weight: 500; }
+.col-slug { color: #64748b; font-family: monospace; font-size: 0.82rem; }
+.col-desc { color: #64748b; max-width: 200px; }
+.col-actions { display: flex; gap: 0.4rem; }
+
+.badge-active { background: #dcfce7; color: #16a34a; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+.badge-inactive { background: #f1f5f9; color: #64748b; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.52rem 1rem;
+  border-radius: 0.45rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.btn-primary:hover { background: #2563eb; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-edit {
+  background: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  padding: 0.28rem 0.65rem;
+  border-radius: 0.38rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.btn-edit:hover { background: #e0f2fe; }
+
+.btn-delete {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  padding: 0.28rem 0.65rem;
+  border-radius: 0.38rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.btn-delete:hover { background: #ffe4e6; }
+
+.btn-cancel {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 0.52rem 1rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.btn-cancel:hover { background: #f1f5f9; }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 100;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  width: min(520px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.modal-header h3 { margin: 0; font-size: 1.05rem; color: #0f172a; }
+.modal-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #64748b; }
+.modal-close:hover { color: #0f172a; }
+
+.modal-body { padding: 1.2rem 1.4rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.9rem; }
+
+.modal-footer {
+  padding: 1rem 1.4rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.form-row { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-row label { font-size: 0.82rem; font-weight: 600; color: #475569; }
+.form-row input, .form-row textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.42rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.form-row input:focus, .form-row textarea:focus { border-color: #3b82f6; }
+.form-row textarea { resize: vertical; }
+
+.checkbox-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #334155; cursor: pointer; }
+.checkbox-label input[type="checkbox"] { width: 1rem; height: 1rem; cursor: pointer; }
+
+.confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  background: #fff;
+  border-radius: 0.65rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  padding: 1.5rem 1.8rem;
+  text-align: center;
+  min-width: 300px;
+}
+.confirm-dialog p { margin: 0 0 1.2rem; color: #334155; font-size: 0.95rem; }
+.confirm-actions { display: flex; gap: 0.7rem; justify-content: center; }

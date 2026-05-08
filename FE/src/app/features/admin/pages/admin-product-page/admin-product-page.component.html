@@ -1,0 +1,144 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Quản lý sản phẩm</h2>
+      <p class="page-sub">Tổng: {{ products.length }} sản phẩm</p>
+    </div>
+    <button class="btn-primary" (click)="openCreate()">+ Thêm sản phẩm</button>
+  </div>
+
+  @if (errorMessage) {
+    <p class="alert-error">{{ errorMessage }}</p>
+  }
+
+  @if (loading) {
+    <p class="state-msg">Đang tải...</p>
+  } @else if (products.length === 0) {
+    <p class="state-msg">Chưa có sản phẩm nào.</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Ảnh</th>
+            <th>Tên sản phẩm</th>
+            <th>Danh mục</th>
+            <th>Thương hiệu</th>
+            <th>Giá</th>
+            <th>Trạng thái</th>
+            <th>Nổi bật</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of products; track p.id) {
+            <tr>
+              <td class="col-id">{{ p.id }}</td>
+              <td class="col-img">
+                <img [src]="p.thumbnail || 'https://placehold.co/50x50?text=?'" [alt]="p.name" />
+              </td>
+              <td class="col-name">{{ p.name }}</td>
+              <td>{{ getCategoryName(p.categoryId) }}</td>
+              <td>{{ getBrandName(p.brandId) }}</td>
+              <td class="col-price">{{ formatPrice(p.basePrice) }}</td>
+              <td>
+                <span [class]="p.isActive ? 'badge-active' : 'badge-inactive'">
+                  {{ p.isActive ? 'Đang bán' : 'Ngừng bán' }}
+                </span>
+              </td>
+              <td>
+                <span [class]="p.isFeatured ? 'badge-featured' : 'badge-normal'">
+                  {{ p.isFeatured ? 'Nổi bật' : '—' }}
+                </span>
+              </td>
+              <td class="col-actions">
+                <button class="btn-edit" (click)="openEdit(p)">Sửa</button>
+                <button class="btn-delete" (click)="confirmDelete(p.id)">Xóa</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+@if (showModal) {
+  <div class="overlay" (click)="closeModal()"></div>
+  <div class="modal">
+    <div class="modal-header">
+      <h3>{{ editingId !== null ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới' }}</h3>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Tên sản phẩm *</label>
+        <input [(ngModel)]="form.name" (blur)="generateSlug()" placeholder="iPhone 15 Pro Max" />
+      </div>
+      <div class="form-row">
+        <label>Slug *</label>
+        <input [(ngModel)]="form.slug" placeholder="iphone-15-pro-max" />
+      </div>
+      <div class="form-row-2">
+        <div class="form-row">
+          <label>Thương hiệu *</label>
+          <select [(ngModel)]="form.brandId">
+            <option [value]="0" disabled>-- Chọn thương hiệu --</option>
+            @for (b of brands; track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Danh mục *</label>
+          <select [(ngModel)]="form.categoryId">
+            <option [value]="0" disabled>-- Chọn danh mục --</option>
+            @for (c of categories; track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Giá bán (VND) *</label>
+        <input type="number" [(ngModel)]="form.basePrice" min="0" placeholder="22990000" />
+      </div>
+      <div class="form-row">
+        <label>Ảnh thumbnail (URL)</label>
+        <input [(ngModel)]="form.thumbnail" placeholder="https://..." />
+      </div>
+      <div class="form-row">
+        <label>Mô tả</label>
+        <textarea [(ngModel)]="form.description" rows="3" placeholder="Mô tả ngắn về sản phẩm..."></textarea>
+      </div>
+      <div class="form-row-2">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="form.isActive" />
+          Đang bán
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="form.isFeatured" />
+          Nổi bật
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeModal()">Hủy</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving">
+        {{ saving ? 'Đang lưu...' : (editingId !== null ? 'Cập nhật' : 'Thêm mới') }}
+      </button>
+    </div>
+  </div>
+}
+
+@if (showConfirm) {
+  <div class="overlay" (click)="cancelDelete()"></div>
+  <div class="confirm-dialog">
+    <p>Bạn có chắc muốn xóa sản phẩm này?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelDelete()">Hủy</button>
+      <button class="btn-delete" (click)="doDelete()">Xóa</button>
+    </div>
+  </div>
+}
