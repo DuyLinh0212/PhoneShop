@@ -33,11 +33,11 @@ public class DataInitializer {
         if (brandRepository.count() > 0) return;
 
         List<Brand> brands = brandRepository.saveAll(List.of(
-                brand("Apple", "apple", "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"),
-                brand("Samsung", "samsung", "https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg"),
-                brand("Xiaomi", "xiaomi", "https://upload.wikimedia.org/wikipedia/commons/2/29/Xiaomi_logo.svg"),
-                brand("OPPO", "oppo", "https://upload.wikimedia.org/wikipedia/commons/a/a9/OPPO_LOGO_2019.svg"),
-                brand("Vivo", "vivo", "https://upload.wikimedia.org/wikipedia/commons/9/9e/Vivo_logo.svg")
+                brand("Apple", "apple", "https://logo.clearbit.com/apple.com"),
+                brand("Samsung", "samsung", "https://logo.clearbit.com/samsung.com"),
+                brand("Xiaomi", "xiaomi", "https://logo.clearbit.com/xiaomi.com"),
+                brand("OPPO", "oppo", "https://logo.clearbit.com/oppo.com"),
+                brand("Vivo", "vivo", "https://logo.clearbit.com/vivo.com")
         ));
 
         List<Category> categories = categoryRepository.saveAll(List.of(
