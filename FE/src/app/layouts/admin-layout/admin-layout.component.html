@@ -1,0 +1,31 @@
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <p class="sidebar-title">ADMIN PANEL</p>
+    <h1 class="sidebar-heading">Quan tri he thong</h1>
+
+    <nav class="sidebar-nav">
+      <a
+        routerLink="/admin/products"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        Quan ly san pham
+      </a>
+    </nav>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-header">
+      <div class="header-info">
+        <p class="header-label">Trang nghiep vu</p>
+        <p class="header-user">Nguoi dung: {{ user()?.fullName }}</p>
+      </div>
+
+      <button type="button" (click)="logout()">Dang xuat</button>
+    </header>
+
+    <main class="admin-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

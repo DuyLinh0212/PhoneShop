@@ -1,0 +1,58 @@
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">WebBanPhone</p>
+    <h1>Đăng ký User</h1>
+    <p class="subtitle">Trang này chỉ đăng ký tài khoản User theo backend hiện tại.</p>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <label for="fullName">Họ tên</label>
+      <input id="fullName" type="text" formControlName="fullName" />
+      @if (registerForm.controls.fullName.touched && registerForm.controls.fullName.invalid) {
+        <p class="field-error">Ho ten la bat buoc.</p>
+      }
+
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" />
+      @if (registerForm.controls.email.touched && registerForm.controls.email.invalid) {
+        <p class="field-error">Email khong hop le.</p>
+      }
+
+      <label for="phone">Số điện thoại</label>
+      <input id="phone" type="text" formControlName="phone" />
+
+      <label for="password">Mật khẩu</label>
+      <input id="password" type="password" formControlName="password" />
+      @if (registerForm.controls.password.touched && registerForm.controls.password.invalid) {
+        <p class="field-error">
+          Mat khau toi thieu 8 ky tu, gom chu hoa, chu thuong, so va ky tu dac biet.
+        </p>
+      }
+
+      <label for="confirmPassword">Nhập lại mật khẩu</label>
+      <input id="confirmPassword" type="password" formControlName="confirmPassword" />
+      @if (
+        registerForm.controls.confirmPassword.touched &&
+        registerForm.controls.confirmPassword.invalid
+      ) {
+        <p class="field-error">Vui long nhap lai mat khau.</p>
+      }
+
+      @if (errorMessage) {
+        <p class="error-box">{{ errorMessage }}</p>
+      }
+
+      @if (successMessage) {
+        <p class="success-box">{{ successMessage }}</p>
+      }
+
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Đang xử lý...' : 'Đăng ký' }}
+      </button>
+    </form>
+
+    <p class="switch-text">
+      Đã có tài khoản?
+      <a routerLink="/auth/login">Quay lại đăng nhập</a>
+    </p>
+  </div>
+</section>

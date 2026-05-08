@@ -1,0 +1,34 @@
+<section class="auth-shell">
+  <div class="auth-card">
+    <p class="eyebrow">WebBanPhone</p>
+    <h1>Đăng nhập</h1>
+    <p class="subtitle">Admin vào layout quản trị (`roleID = 1`), User vào layout người dùng.</p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
+      @if (loginForm.controls.email.touched && loginForm.controls.email.invalid) {
+        <p class="field-error">Email không hợp lệ.</p>
+      }
+
+      <label for="password">Mật khẩu</label>
+      <input id="password" type="password" formControlName="password" placeholder="********" />
+      @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
+        <p class="field-error">Mật khẩu là bắt buộc.</p>
+      }
+
+      @if (errorMessage) {
+        <p class="error-box">{{ errorMessage }}</p>
+      }
+
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Đang xử lý...' : 'Đăng nhập' }}
+      </button>
+    </form>
+
+    <p class="switch-text">
+      Chưa có tài khoản?
+      <a routerLink="/auth/register">Đăng ký User</a>
+    </p>
+  </div>
+</section>

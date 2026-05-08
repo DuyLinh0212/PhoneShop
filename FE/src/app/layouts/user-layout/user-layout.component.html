@@ -1,0 +1,54 @@
+<div class="luxury-shell">
+  <div class="ambient ambient-left" aria-hidden="true"></div>
+  <div class="ambient ambient-right" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="top-note">Luxury Mobile Boutique | Giao nhanh 2h nội thành</div>
+
+    <div class="header-main">
+      <div class="brand-block">
+        <span class="brand-mark" aria-hidden="true">LX</span>
+        <div>
+          <p class="brand-title">LUXPHONE</p>
+          <p class="brand-sub">Premium Smartphone Gallery</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        @if (user(); as currentUser) {
+          <button type="button" class="ghost-btn" style="pointer-events: none; border-color: transparent;">
+            Xin chào, {{ currentUser.fullName }}
+          </button>
+          <button type="button" class="solid-btn" (click)="logout()">
+            Đăng xuất
+          </button>
+        }
+      </div>
+    </div>
+
+    <nav class="nav-bar" aria-label="Điều hướng chính">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
+        Trang chủ
+      </a>
+      <a routerLink="/products" routerLinkActive="active" class="nav-link">
+        Điện thoại
+      </a>
+      <a routerLink="/accessories" routerLinkActive="active" class="nav-link">
+        Phụ kiện
+      </a>
+    </nav>
+  </header>
+
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 LuxPhone Boutique. All rights reserved.</p>
+    <div>
+      <a href="#">Chính sách bảo hành</a>
+      <a href="#">Vận chuyển & thanh toán</a>
+      <a href="#">Liên hệ</a>
+    </div>
+  </footer>
+</div>

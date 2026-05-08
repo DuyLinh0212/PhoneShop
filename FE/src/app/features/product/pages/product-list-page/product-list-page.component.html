@@ -1,0 +1,39 @@
+<section class="panel">
+  <header class="panel-header">
+    <div>
+      <p class="tag">{{ viewMode === 'admin' ? 'Admin View' : 'User View' }}</p>
+      <h2>Danh Sách Sản Phẩm</h2>
+    </div>
+    <button type="button" (click)="loadProducts()">Tải lại</button>
+  </header>
+
+  @if (loading) {
+    <p class="state">Đang tải sản phẩm...</p>
+  } @else if (errorMessage) {
+    <p class="state error">{{ errorMessage }}</p>
+  } @else if (products.length === 0) {
+    <p class="state">Chưa có sản phẩm nào.</p>
+  } @else {
+    <div class="grid">
+      @for (product of products; track product.id) {
+        <article class="card">
+          <img
+            [src]="product.thumbnail || 'https://placehold.co/320x220?text=Phone'"
+            [alt]="product.name"
+          />
+          <div class="card-body">
+            <h3>{{ product.name }}</h3>
+            <p class="description">{{ product.description || 'Chưa có mô tả.' }}</p>
+            <p class="price">{{ formatPrice(product.basePrice) }}</p>
+            <div class="meta">
+              <span>Lượt xem: {{ product.viewCount }}</span>
+              <span [class.inactive]="!product.isActive">
+                {{ product.isActive ? 'Đang bán' : 'Ngừng bán' }}
+              </span>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
