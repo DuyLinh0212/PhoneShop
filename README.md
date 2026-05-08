@@ -2,7 +2,8 @@
 
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-F2F4F9?style=for-the-badge&logo=spring-boot)](https://spring.io/projects/spring-boot)
 [![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.io/)
-[![MySQL](https://img.shields.io/badge/MySQL-00000F?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?style=for-the-badge&logo=microsoft-sql-server&logoColor=white)](https://www.microsoft.com/en-us/sql-server)
+
 
 ## 📖 Giới thiệu dự án
 **PhoneShop** là hệ thống website kinh doanh điện thoại di động trực tuyến được phát triển theo mô hình Client-Server (RESTful API). Hệ thống cung cấp không gian mua sắm chuẩn luxury cho khách hàng với các tính năng tìm kiếm, đặt hàng, thanh toán và theo dõi vận chuyển. Đồng thời cung cấp công cụ quản trị toàn diện cho Admin và nhân viên xử lý đơn hàng.
@@ -10,9 +11,9 @@
 Dự án thuộc Đồ án môn học Công Nghệ Java - Trường Đại học Công Thương TP.HCM (HUIT).
 
 ## 👨‍💻 Đội ngũ phát triển (Nhóm 3)
-* **Nguyễn Duy Linh** - 2001230443
-* **Lê Hoàng Bảo Long** - 2001230449
-* **Kiều Tấn Phát** - 2001230649
+* **Nguyễn Duy Linh**
+* **Lê Hoàng Bảo Long**
+* **Kiều Tấn Phát**
 
 ## 🛠️ Công nghệ & Kiến trúc
 * **Frontend (`/FE`):** Angular, CSS/Bootstrap (Giao diện Responsive, tương thích Mobile/PC).
