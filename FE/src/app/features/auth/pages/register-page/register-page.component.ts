@@ -39,13 +39,13 @@ export class RegisterPageComponent {
   onSubmit(): void {
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
-      this.errorMessage = 'Vui long kiem tra lai thong tin dang ky.';
+      this.errorMessage = 'Vui lòng kiểm tra lại thông tin đăng ký.';
       return;
     }
 
     const formValue = this.registerForm.getRawValue();
     if (formValue.password !== formValue.confirmPassword) {
-      this.errorMessage = 'Mat khau xac nhan chua khop.';
+      this.errorMessage = 'Mật khẩu xác nhận chưa khớp.';
       return;
     }
 
@@ -63,11 +63,11 @@ export class RegisterPageComponent {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: () => {
-          this.successMessage = 'Dang ky User thanh cong. Chuyen sang trang dang nhap...';
+          this.successMessage = 'Đăng ký tài khoản thành công. Chuyển sang trang đăng nhập...';
           setTimeout(() => this.router.navigate(['/auth/login']), 900);
         },
         error: (error) => {
-          this.errorMessage = extractApiErrorMessage(error, 'Khong the dang ky tai khoan.');
+          this.errorMessage = extractApiErrorMessage(error, 'Không thể đăng ký tài khoản.');
         }
       });
   }

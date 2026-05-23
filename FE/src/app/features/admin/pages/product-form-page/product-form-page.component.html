@@ -1,0 +1,235 @@
+<section class="product-form-page">
+  <header class="page-head">
+    <div>
+      <nav class="breadcrumbs" aria-label="Đường dẫn">
+        <a routerLink="/admin/dashboard">Bảng điều khiển</a>
+        <span>></span>
+        <a routerLink="/admin/products">Danh sách sản phẩm</a>
+        <span>></span>
+        <b>{{ isEditMode ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }}</b>
+      </nav>
+      <h1>Thêm / Sửa sản phẩm</h1>
+      <p>Điền đầy đủ thông tin để tạo hoặc cập nhật sản phẩm.</p>
+    </div>
+
+    <div class="head-actions">
+      <a routerLink="/admin/products" class="btn ghost">Hủy bỏ</a>
+      <button type="button" class="btn light" [disabled]="saving" (click)="saveProduct(true)">
+        Lưu & tiếp tục
+      </button>
+      <button type="button" class="btn primary" [disabled]="saving" (click)="saveProduct(false)">
+        {{ saving ? 'Đang lưu...' : 'Lưu sản phẩm' }}
+      </button>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <p class="form-alert error">{{ errorMessage }}</p>
+  }
+
+  @if (successMessage) {
+    <p class="form-alert success">{{ successMessage }}</p>
+  }
+
+  <div class="form-grid">
+    <div class="left-column">
+      <section class="form-card">
+        <h2>Thông tin cơ bản</h2>
+        <div class="two-col">
+          <label>
+            <span>Tên sản phẩm <b>*</b></span>
+            <input [(ngModel)]="product.name" name="name" />
+          </label>
+          <label>
+            <span>Thương hiệu <b>*</b></span>
+            <select [(ngModel)]="product.brand" name="brand">
+              <option>Apple</option>
+              <option>Samsung</option>
+              <option>Xiaomi</option>
+              <option>OPPO</option>
+              <option>Vivo</option>
+              <option>Realme</option>
+            </select>
+          </label>
+          <label>
+            <span>Danh mục <b>*</b></span>
+            <select [(ngModel)]="product.category" name="category">
+              <option>Điện thoại</option>
+              <option>Phụ kiện</option>
+              <option>Máy tính bảng</option>
+            </select>
+          </label>
+          <label>
+            <span>Trạng thái <b>*</b></span>
+            <select [(ngModel)]="product.status" name="status">
+              <option>Đang kinh doanh</option>
+              <option>Tạm ẩn</option>
+              <option>Ngừng kinh doanh</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="wide">
+          <span>Mô tả ngắn</span>
+          <textarea rows="2" [(ngModel)]="product.shortDescription" name="shortDescription"></textarea>
+          <small>109/255</small>
+        </label>
+
+        <label class="wide">
+          <span>Mô tả chi tiết</span>
+          <div class="editor">
+            <div class="toolbar">
+              <button type="button">Inter</button>
+              <button type="button">14</button>
+              <button type="button">B</button>
+              <button type="button">I</button>
+              <button type="button">U</button>
+              <button type="button">Danh sách</button>
+              <button type="button">Ảnh</button>
+              <button type="button">Liên kết</button>
+            </div>
+            <textarea rows="8" [(ngModel)]="product.detail" name="detail"></textarea>
+          </div>
+          <small>339/5000</small>
+        </label>
+
+        <div class="seo-block">
+          <h3>Thông tin SEO</h3>
+          <div class="two-col">
+            <label>
+              <span>URL thân thiện <b>*</b></span>
+              <input [(ngModel)]="product.slug" name="slug" />
+            </label>
+            <label>
+              <span>Tiêu đề SEO</span>
+              <input [(ngModel)]="product.seoTitle" name="seoTitle" />
+            </label>
+          </div>
+          <label class="wide">
+            <span>Mô tả SEO</span>
+            <textarea rows="2" [(ngModel)]="product.seoDescription" name="seoDescription"></textarea>
+            <small>94/160</small>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <div class="right-column">
+      <section class="form-card image-card">
+        <h2>Hình ảnh sản phẩm</h2>
+        <input
+          #imageInput
+          class="file-input"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple
+          (change)="onImageSelected($event)"
+        />
+        <div
+          class="upload-box"
+          role="button"
+          tabindex="0"
+          (drop)="onImageDropped($event)"
+          (dragover)="onDragOver($event)"
+          (click)="imageInput.click()"
+        >
+          <i>^</i>
+          <span>{{ uploadingImages ? 'Đang tải ảnh lên...' : 'Kéo & thả ảnh vào đây' }}</span>
+          <small>hoặc</small>
+          <button type="button" [disabled]="uploadingImages" (click)="imageInput.click(); $event.stopPropagation()">
+            Chọn ảnh
+          </button>
+        </div>
+        <p>Định dạng: JPG, PNG, WEBP. Kích thước tối đa khuyến nghị: 2MB.</p>
+        <div class="image-list">
+          @for (image of gallery; track image; let index = $index) {
+            <button type="button" [class.active]="index === 0" (click)="setPrimaryImage(index)">
+              <img [src]="imageSrc(image)" alt="Ảnh sản phẩm {{ index + 1 }}" />
+              @if (index === 0) {
+                <em>Ảnh chính</em>
+              }
+              <span type="button" class="remove-image" (click)="removeImage(index); $event.stopPropagation()">x</span>
+            </button>
+          }
+          <button type="button" class="add-image" (click)="imageInput.click()">+<span>Thêm ảnh</span></button>
+        </div>
+      </section>
+
+      <section class="form-card info-card">
+        <h2>Thông tin chung</h2>
+        <label class="wide">
+          <span>SKU</span>
+          <input [(ngModel)]="product.sku" name="sku" />
+        </label>
+        <div class="two-col compact">
+          <label>
+            <span>Ngày ra mắt</span>
+            <input type="date" [(ngModel)]="product.releaseDate" name="releaseDate" />
+          </label>
+          <label>
+            <span>Bảo hành (tháng)</span>
+            <input type="number" [(ngModel)]="product.warranty" name="warranty" />
+          </label>
+          <label>
+            <span>Xuất xứ</span>
+            <select [(ngModel)]="product.origin" name="origin">
+              <option>Việt Nam</option>
+              <option>Trung Quốc</option>
+              <option>Hàn Quốc</option>
+              <option>Mỹ</option>
+            </select>
+          </label>
+          <label>
+            <span>Nhà sản xuất</span>
+            <input [(ngModel)]="product.manufacturer" name="manufacturer" />
+          </label>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="variant-card">
+    <div class="variant-head">
+      <h2>Biến thể sản phẩm</h2>
+      <button type="button">+ Thêm biến thể</button>
+    </div>
+    <div class="variant-table">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tên biến thể</th>
+            <th>SKU</th>
+            <th>Giá bán (đ) <b>*</b></th>
+            <th>Giá khuyến mãi (đ)</th>
+            <th>Giá nhập (đ)</th>
+            <th>Tồn kho <b>*</b></th>
+            <th>Hình ảnh</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (variant of variants; track variant.sku; let index = $index) {
+            <tr>
+              <td>{{ index + 1 }}</td>
+              <td class="variant-name">
+                <i [style.background]="variant.color"></i>
+                {{ variant.name }}
+              </td>
+              <td>{{ variant.sku }}</td>
+              <td><input [(ngModel)]="variant.price" name="price{{ index }}" /></td>
+              <td><input [(ngModel)]="variant.salePrice" name="salePrice{{ index }}" /></td>
+              <td><input [(ngModel)]="variant.cost" name="cost{{ index }}" /></td>
+              <td><input type="number" [(ngModel)]="variant.stock" name="stock{{ index }}" /></td>
+              <td><img [src]="imageSrc(variant.image)" [alt]="variant.name" /></td>
+              <td class="row-actions">
+                <button type="button">Sửa</button>
+                <button type="button" class="delete">Xóa</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

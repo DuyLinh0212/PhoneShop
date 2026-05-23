@@ -1,8 +1,8 @@
 <section class="auth-shell">
   <div class="auth-card">
-    <p class="eyebrow">WebBanPhone</p>
+    <p class="eyebrow">PhoneStore</p>
     <h1>Đăng nhập</h1>
-    <p class="subtitle">Admin vào layout quản trị (`roleID = 1`), User vào layout người dùng.</p>
+    <p class="subtitle">Admin vào trang quản trị, khách hàng vào giao diện mua sắm.</p>
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <label for="email">Email</label>
@@ -28,7 +28,7 @@
 
     <p class="switch-text">
       Chưa có tài khoản?
-      <a routerLink="/auth/register">Đăng ký User</a>
+      <a routerLink="/auth/register">Đăng ký tài khoản</a>
     </p>
   </div>
 </section>

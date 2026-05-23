@@ -1,13 +1,23 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
+import { API_BASE_URL } from '../../../../core/constants/api.constants';
 import { Product } from '../../../../core/models/product.models';
 import { ProductService } from '../../../../core/services/product.service';
 
+type HomeProduct = Product & {
+  brandName?: string;
+  storage?: string;
+  screen?: string;
+  camera?: string;
+  rating?: number;
+  reviews?: number;
+};
+
 @Component({
   selector: 'app-product-list-page',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './product-list-page.component.html',
   styleUrl: './product-list-page.component.css'
 })
@@ -16,6 +26,174 @@ export class ProductListPageComponent implements OnInit {
   loading = false;
   errorMessage = '';
   viewMode: 'admin' | 'user' = 'user';
+
+  readonly brandMenu = [
+    { icon: 'A', name: 'Apple (iPhone)' },
+    { icon: 'S', name: 'Samsung' },
+    { icon: 'MI', name: 'Xiaomi' },
+    { icon: 'OP', name: 'OPPO' },
+    { icon: 'V', name: 'Vivo' },
+    { icon: 'R', name: 'Realme' },
+    { icon: 'G', name: 'Google (Pixel)' },
+    { icon: '1+', name: 'OnePlus' },
+    { icon: 'N', name: 'Nokia' }
+  ];
+
+  readonly heroFeatures = [
+    'Chip A17 Pro mạnh mẽ',
+    'Camera 48MP chuyên nghiệp',
+    'Titanium thiết kế cao cấp'
+  ];
+
+  readonly productTabs = ['Nổi bật', 'Mới nhất', 'Bán chạy', 'Giảm giá'];
+
+  readonly promoTiles = [
+    {
+      title: 'Điện thoại Samsung',
+      subtitle: 'Ưu đãi đến 20%',
+      image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=460&q=80'
+    },
+    {
+      title: 'Xiaomi 14 Series',
+      subtitle: 'Hiệu năng đỉnh cao',
+      image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=460&q=80'
+    },
+    {
+      title: 'OPPO Reno11 Series',
+      subtitle: 'Chân dung chuyên gia',
+      image: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=460&q=80'
+    },
+    {
+      title: 'Trả góp 0%',
+      subtitle: 'Duyệt nhanh 5 phút',
+      image: ''
+    }
+  ];
+
+  readonly serviceHighlights = [
+    { icon: '#', title: 'Hàng chính hãng 100%', text: 'Cam kết chất lượng' },
+    { icon: '*', title: 'Bảo hành chính hãng', text: '12 - 24 tháng' },
+    { icon: '+', title: 'Miễn phí giao hàng', text: 'Đơn từ 500.000đ' },
+    { icon: '<>', title: 'Đổi trả dễ dàng', text: 'Trong 7 ngày' },
+    { icon: '$', title: 'Thanh toán an toàn', text: 'Nhiều phương thức' }
+  ];
+
+  readonly fallbackProducts: HomeProduct[] = [
+    {
+      id: 1001,
+      brandId: 1,
+      categoryId: 1,
+      brandName: 'Apple',
+      name: 'iPhone 15 Pro Max',
+      slug: 'iphone-15-pro-max',
+      description: 'Titanium. Camera 48MP. Chip A17 Pro.',
+      basePrice: 29490000,
+      thumbnail: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=520&q=80',
+      isActive: true,
+      isFeatured: true,
+      viewCount: 128,
+      storage: '256GB',
+      screen: '6.7"',
+      camera: '48MP',
+      rating: 4.9,
+      reviews: 128
+    },
+    {
+      id: 1002,
+      brandId: 2,
+      categoryId: 1,
+      brandName: 'Samsung',
+      name: 'Samsung Galaxy S24 Ultra',
+      slug: 'samsung-galaxy-s24-ultra',
+      description: 'Màn hình lớn, S Pen, camera 200MP.',
+      basePrice: 24990000,
+      thumbnail: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=520&q=80',
+      isActive: true,
+      isFeatured: true,
+      viewCount: 96,
+      storage: '256GB',
+      screen: '6.8"',
+      camera: '200MP',
+      rating: 4.8,
+      reviews: 96
+    },
+    {
+      id: 1003,
+      brandId: 3,
+      categoryId: 1,
+      brandName: 'Xiaomi',
+      name: 'Xiaomi 14',
+      slug: 'xiaomi-14',
+      description: 'Snapdragon cao cấp, sạc nhanh.',
+      basePrice: 16990000,
+      thumbnail: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=520&q=80',
+      isActive: true,
+      isFeatured: true,
+      viewCount: 74,
+      storage: '256GB',
+      screen: '6.36"',
+      camera: '50MP',
+      rating: 4.7,
+      reviews: 74
+    },
+    {
+      id: 1004,
+      brandId: 4,
+      categoryId: 1,
+      brandName: 'OPPO',
+      name: 'OPPO Reno11 5G',
+      slug: 'oppo-reno11-5g',
+      description: 'Chụp chân dung nổi bật.',
+      basePrice: 10990000,
+      thumbnail: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=520&q=80',
+      isActive: true,
+      isFeatured: true,
+      viewCount: 74,
+      storage: '256GB',
+      screen: '6.7"',
+      camera: '50MP',
+      rating: 4.7,
+      reviews: 74
+    },
+    {
+      id: 1005,
+      brandId: 5,
+      categoryId: 1,
+      brandName: 'Vivo',
+      name: 'vivo V30 5G',
+      slug: 'vivo-v30-5g',
+      description: 'Thiết kế mỏng nhẹ, camera Aura.',
+      basePrice: 9490000,
+      thumbnail: 'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=520&q=80',
+      isActive: true,
+      isFeatured: true,
+      viewCount: 42,
+      storage: '256GB',
+      screen: '6.78"',
+      camera: '50MP',
+      rating: 4.6,
+      reviews: 42
+    },
+    {
+      id: 1006,
+      brandId: 6,
+      categoryId: 1,
+      brandName: 'Realme',
+      name: 'realme 12 Pro+ 5G',
+      slug: 'realme-12-pro-plus-5g',
+      description: 'Zoom tốt, pin lớn.',
+      basePrice: 8990000,
+      thumbnail: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=520&q=80',
+      isActive: true,
+      isFeatured: true,
+      viewCount: 35,
+      storage: '256GB',
+      screen: '6.7"',
+      camera: '64MP',
+      rating: 4.6,
+      reviews: 35
+    }
+  ];
 
   constructor(
     private readonly productService: ProductService,
@@ -45,6 +223,58 @@ export class ProductListPageComponent implements OnInit {
     });
   }
 
+  get homeProducts(): HomeProduct[] {
+    const source = this.products.length > 0 ? this.products : this.fallbackProducts;
+    return source.slice(0, 6).map((product, index) => ({
+      ...product,
+      brandName: this.brandName(product.brandId),
+      storage: this.storageFor(index),
+      screen: this.screenFor(index),
+      camera: this.cameraFor(index),
+      rating: 4.9 - Math.min(index, 4) * 0.1,
+      reviews: product.viewCount || [128, 96, 74, 74, 42, 35][index] || 28,
+      thumbnail: product.thumbnail || this.fallbackProducts[index % this.fallbackProducts.length].thumbnail
+    }));
+  }
+
+  brandName(brandId: number): string {
+    const names: Record<number, string> = {
+      1: 'Apple',
+      2: 'Samsung',
+      3: 'Xiaomi',
+      4: 'OPPO',
+      5: 'Vivo',
+      6: 'Realme'
+    };
+
+    return names[brandId] ?? 'PhoneStore';
+  }
+
+  discountFor(index: number): number {
+    return [-5, -8, -6, -7, -9, -10][index % 6];
+  }
+
+  oldPrice(price: number | string, index: number): number {
+    const numericPrice = Number(price);
+    if (Number.isNaN(numericPrice)) {
+      return 0;
+    }
+
+    return Math.round(numericPrice * (1.08 + index * 0.01));
+  }
+
+  storageFor(index: number): string {
+    return ['256GB', '256GB', '256GB', '256GB', '256GB', '256GB'][index % 6];
+  }
+
+  screenFor(index: number): string {
+    return ['6.7"', '6.8"', '6.36"', '6.7"', '6.78"', '6.7"'][index % 6];
+  }
+
+  cameraFor(index: number): string {
+    return ['48MP', '200MP', '50MP', '50MP', '50MP', '64MP'][index % 6];
+  }
+
   formatPrice(price: number | string): string {
     const numericPrice = Number(price);
     if (Number.isNaN(numericPrice)) {
@@ -56,5 +286,13 @@ export class ProductListPageComponent implements OnInit {
       currency: 'VND',
       maximumFractionDigits: 0
     }).format(numericPrice);
+  }
+
+  imageSrc(imageUrl: string): string {
+    if (imageUrl.startsWith('/uploads/')) {
+      return `${API_BASE_URL.replace('/api', '')}${imageUrl}`;
+    }
+
+    return imageUrl;
   }
 }

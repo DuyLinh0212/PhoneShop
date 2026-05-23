@@ -29,7 +29,7 @@ export class LoginPageComponent {
   onSubmit(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
-      this.errorMessage = 'Vui long nhap dung email va mat khau.';
+      this.errorMessage = 'Vui lòng nhập đúng email và mật khẩu.';
       return;
     }
 
@@ -48,7 +48,7 @@ export class LoginPageComponent {
         error: (error) => {
           this.errorMessage = extractApiErrorMessage(
             error,
-            'Dang nhap that bai. Kiem tra email hoac mat khau.'
+            'Đăng nhập thất bại. Kiểm tra email hoặc mật khẩu.'
           );
         }
       });

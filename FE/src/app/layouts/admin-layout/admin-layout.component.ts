@@ -11,11 +11,17 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class AdminLayoutComponent {
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
 
   readonly user = this.authService.currentUser;
+  accountMenuOpen = false;
+
+  toggleAccountMenu(): void {
+    this.accountMenuOpen = !this.accountMenuOpen;
+  }
 
   logout(): void {
+    this.accountMenuOpen = false;
     this.authService.logout();
     this.router.navigate(['/auth/login']);
   }

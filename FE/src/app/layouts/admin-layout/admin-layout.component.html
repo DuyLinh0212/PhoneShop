@@ -1,27 +1,103 @@
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <p class="sidebar-title">ADMIN PANEL</p>
-    <h1 class="sidebar-heading">Quan tri he thong</h1>
+    <a routerLink="/admin/dashboard" class="brand-block" aria-label="PhoneStore Admin">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>
+        <strong>PhoneStore</strong>
+        <small>Bảng điều khiển Admin</small>
+      </span>
+    </a>
 
-    <nav class="sidebar-nav">
-      <a
-        routerLink="/admin/products"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >
-        Quan ly san pham
+    <nav class="sidebar-nav" aria-label="Điều hướng quản trị">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <i>##</i>
+        <span>Tổng quan</span>
       </a>
+
+      <div class="nav-group">
+        <a routerLink="/admin/products" routerLinkActive="active">
+          <i>P</i>
+          <span>Sản phẩm</span>
+          <b aria-hidden="true">⌄</b>
+        </a>
+        <div class="sub-nav">
+          <a href="#">Danh mục</a>
+          <a href="#">Thương hiệu</a>
+          <a href="#">Biến thể</a>
+          <a href="#">Thông số kỹ thuật</a>
+          <a href="#">Hình ảnh</a>
+        </div>
+      </div>
+
+      <a href="#"><i>O</i><span>Đơn hàng</span></a>
+      <a href="#"><i>C</i><span>Khách hàng</span></a>
+      <a href="#"><i>%</i><span>Khuyến mãi</span></a>
+      <a href="#"><i>N</i><span>Bài viết</span></a>
+      <a href="#"><i>B</i><span>Banner</span></a>
+      <a href="#"><i>M</i><span>Bình luận</span></a>
+      <a href="#"><i>S</i><span>Thống kê</span></a>
+      <a href="#"><i>G</i><span>Cấu hình</span></a>
+      <a href="#"><i>U</i><span>Người dùng</span></a>
+      <a href="#"><i>R</i><span>Vai trò & phân quyền</span></a>
+      <a href="#"><i>L</i><span>Nhật ký hoạt động</span></a>
     </nav>
+
+    <div class="admin-profile">
+      <span class="avatar" aria-hidden="true">A</span>
+      <span>
+        <strong>{{ user()?.fullName || 'Admin' }}</strong>
+        <small>{{ user()?.email || 'admin@phonestore.vn' }}</small>
+      </span>
+      <button type="button" (click)="logout()" aria-label="Đăng xuất">...</button>
+    </div>
   </aside>
 
   <div class="admin-main">
     <header class="admin-header">
-      <div class="header-info">
-        <p class="header-label">Trang nghiep vu</p>
-        <p class="header-user">Nguoi dung: {{ user()?.fullName }}</p>
-      </div>
+      <button type="button" class="menu-btn" aria-label="Mở menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
-      <button type="button" (click)="logout()">Dang xuat</button>
+      <div class="header-actions">
+        <button type="button" class="date-filter" aria-label="Khoảng thời gian">
+          <span class="calendar-icon" aria-hidden="true"></span>
+          <strong>01/05/2024 - 31/05/2024</strong>
+        </button>
+
+        <button type="button" class="bell-btn" aria-label="Thông báo">
+          <span class="bell-icon" aria-hidden="true"></span>
+          <em>5</em>
+        </button>
+
+        <div class="account-menu">
+          <button
+            type="button"
+            class="account-btn"
+            aria-label="Tài khoản Admin"
+            [attr.aria-expanded]="accountMenuOpen"
+            (click)="toggleAccountMenu()"
+          >
+            <span class="account-avatar" aria-hidden="true">A</span>
+            <strong>Admin</strong>
+            <i aria-hidden="true" [class.open]="accountMenuOpen">v</i>
+          </button>
+
+          @if (accountMenuOpen) {
+            <div class="account-dropdown">
+              <div class="dropdown-user">
+                <span class="account-avatar" aria-hidden="true">A</span>
+                <span>
+                  <strong>{{ user()?.fullName || 'Admin' }}</strong>
+                  <small>{{ user()?.email || 'admin@phonestore.vn' }}</small>
+                </span>
+              </div>
+              <button type="button" class="logout-menu-btn" (click)="logout()">Đăng xuất</button>
+            </div>
+          }
+        </div>
+      </div>
     </header>
 
     <main class="admin-content">
