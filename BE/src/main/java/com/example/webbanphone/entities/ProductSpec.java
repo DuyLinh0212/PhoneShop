@@ -8,8 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "product_images")
-public class ProductImage {
+@Table(name = "product_specs")
+public class ProductSpec {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,14 +18,11 @@ public class ProductImage {
     @Column(name = "product_id", nullable = false)
     private Integer productId;
 
-    @Column(name = "variant_id")
-    private Integer variantId;
+    @Column(name = "spec_key", nullable = false, length = 150)
+    private String specKey;
 
-    @Column(name = "image_url", nullable = false, length = 500)
-    private String imageUrl;
-
-    @Column(name = "alt_text", length = 255)
-    private String altText;
+    @Column(name = "spec_value", nullable = false, length = 500)
+    private String specValue;
 
     @Column(name = "sort_order")
     private Integer sortOrder;
@@ -46,28 +43,20 @@ public class ProductImage {
         this.productId = productId;
     }
 
-    public Integer getVariantId() {
-        return variantId;
+    public String getSpecKey() {
+        return specKey;
     }
 
-    public void setVariantId(Integer variantId) {
-        this.variantId = variantId;
+    public void setSpecKey(String specKey) {
+        this.specKey = specKey;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getSpecValue() {
+        return specValue;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public String getAltText() {
-        return altText;
-    }
-
-    public void setAltText(String altText) {
-        this.altText = altText;
+    public void setSpecValue(String specValue) {
+        this.specValue = specValue;
     }
 
     public Integer getSortOrder() {
