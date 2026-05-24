@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 
 import { API_BASE_URL } from '../../../../core/constants/api.constants';
 import { ProductPayload, ProductService } from '../../../../core/services/product.service';
@@ -27,6 +28,7 @@ export class ProductFormPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly productService = inject(ProductService);
+  private readonly authService = inject(AuthService);
 
   readonly isEditMode = this.route.snapshot.paramMap.has('id');
   readonly productId = Number(this.route.snapshot.paramMap.get('id'));
@@ -190,16 +192,18 @@ export class ProductFormPageComponent {
   }
 
   private resolveSaveError(error: any): string {
-    if (error?.status === 401) {
-      return 'Backend chưa nhận được quyền Admin từ token đăng nhập. Hãy restart backend/frontend rồi đăng nhập lại tài khoản Admin.';
-    }
-
-    if (error?.status === 403) {
-      return 'Tài khoản hiện tại không có quyền lưu sản phẩm. Vui lòng đăng nhập bằng tài khoản Admin.';
+    if (error?.status === 401 || error?.status === 403) {
+      this.authService.logout();
+      this.router.navigate(['/auth/login']);
+      return 'Phiên đăng nhập hết hạn. Đang chuyển về trang đăng nhập...';
     }
 
     if (error?.status === 0) {
       return 'Không kết nối được backend. Kiểm tra backend đang chạy và cấu hình CORS.';
+    }
+
+    if (error?.status === 409) {
+      return error?.error?.message ?? 'Slug sản phẩm đã tồn tại. Vui lòng dùng slug khác.';
     }
 
     return error?.error?.message ?? 'Không thể lưu sản phẩm. Vui lòng kiểm tra lại dữ liệu.';

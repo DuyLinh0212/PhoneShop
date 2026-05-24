@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../constants/api.constants';
 import { Product } from '../models/product.models';
-import { AuthService } from './auth.service';
 
 export interface ProductVariantPayload {
   color?: string;
@@ -58,10 +57,7 @@ export interface ImageUploadResponse {
   providedIn: 'root'
 })
 export class ProductService {
-  constructor(
-    private readonly http: HttpClient,
-    private readonly authService: AuthService
-  ) {}
+  constructor(private readonly http: HttpClient) {}
 
   getProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(`${API_BASE_URL}/products`);
@@ -72,27 +68,20 @@ export class ProductService {
   }
 
   createProduct(payload: ProductPayload): Observable<ProductDetail> {
-    return this.http.post<ProductDetail>(`${API_BASE_URL}/admin/products`, payload, {
-      headers: this.adminHeaders()
-    });
+    return this.http.post<ProductDetail>(`${API_BASE_URL}/admin/products`, payload);
   }
 
   updateProduct(id: number, payload: ProductPayload): Observable<ProductDetail> {
-    return this.http.put<ProductDetail>(`${API_BASE_URL}/admin/products/${id}`, payload, {
-      headers: this.adminHeaders()
-    });
+    return this.http.put<ProductDetail>(`${API_BASE_URL}/admin/products/${id}`, payload);
+  }
+
+  deactivateProduct(id: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/admin/products/${id}`);
   }
 
   uploadProductImage(file: File): Observable<ImageUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<ImageUploadResponse>(`${API_BASE_URL}/admin/products/images`, formData, {
-      headers: this.adminHeaders()
-    });
-  }
-
-  private adminHeaders(): HttpHeaders {
-    const token = this.authService.getAccessToken();
-    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    return this.http.post<ImageUploadResponse>(`${API_BASE_URL}/admin/products/images`, formData);
   }
 }
