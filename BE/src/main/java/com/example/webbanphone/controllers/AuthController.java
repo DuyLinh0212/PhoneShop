@@ -2,19 +2,22 @@ package com.example.webbanphone.controllers;
 
 import com.example.webbanphone.dto.auth.LoginRequest;
 import com.example.webbanphone.dto.auth.LoginResponse;
+import com.example.webbanphone.dto.auth.LogoutRequest;
 import com.example.webbanphone.dto.auth.MeResponse;
+import com.example.webbanphone.dto.auth.RefreshTokenRequest;
+import com.example.webbanphone.dto.auth.RefreshTokenResponse;
 import com.example.webbanphone.dto.auth.RegisterRequest;
 import com.example.webbanphone.dto.auth.RegisterResponse;
 import com.example.webbanphone.services.AuthService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -42,5 +45,16 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthenticated");
         }
         return ResponseEntity.ok(authService.getCurrentUser(authentication.getName()));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<RefreshTokenResponse> refresh(@RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshAccessToken(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody(required = false) LogoutRequest request) {
+        authService.logout(request);
+        return ResponseEntity.noContent().build();
     }
 }

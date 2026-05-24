@@ -1,11 +1,13 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { catchError, switchMap, throwError } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
 
+const AUTH_ENDPOINTS = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout'];
+
 export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
-  const isAuthEndpoint =
-    request.url.includes('/api/auth/login') || request.url.includes('/api/auth/register');
+  const isAuthEndpoint = AUTH_ENDPOINTS.some((ep) => request.url.includes(ep));
   if (isAuthEndpoint) {
     return next(request);
   }
@@ -13,15 +15,30 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
   const authService = inject(AuthService);
   const accessToken = authService.getAccessToken();
 
-  if (!accessToken) {
-    return next(request);
-  }
+  const authorizedRequest = accessToken
+    ? request.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } })
+    : request;
 
-  const authorizedRequest = request.clone({
-    setHeaders: {
-      Authorization: `Bearer ${accessToken}`
-    }
-  });
+  return next(authorizedRequest).pipe(
+    catchError((error: HttpErrorResponse) => {
+      // Nếu lỗi 401 và có refresh token thì thử làm mới access token
+      if (error.status === 401 && authService.getRefreshToken()) {
+        return authService.refreshToken().pipe(
+          switchMap((tokenResponse) => {
+            const retryRequest = request.clone({
+              setHeaders: { Authorization: `Bearer ${tokenResponse.accessToken}` }
+            });
+            return next(retryRequest);
+          }),
+          catchError((refreshError) => {
+            // Refresh token hết hạn hoặc không hợp lệ -> đăng xuất
+            authService.logout();
+            return throwError(() => refreshError);
+          })
+        );
+      }
 
-  return next(authorizedRequest);
+      return throwError(() => error);
+    })
+  );
 };

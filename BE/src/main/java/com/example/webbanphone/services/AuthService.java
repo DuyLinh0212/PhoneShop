@@ -1,9 +1,14 @@
 package com.example.webbanphone.services;
+
 import com.example.webbanphone.dto.auth.LoginRequest;
 import com.example.webbanphone.dto.auth.LoginResponse;
+import com.example.webbanphone.dto.auth.LogoutRequest;
 import com.example.webbanphone.dto.auth.MeResponse;
+import com.example.webbanphone.dto.auth.RefreshTokenRequest;
+import com.example.webbanphone.dto.auth.RefreshTokenResponse;
 import com.example.webbanphone.dto.auth.RegisterRequest;
 import com.example.webbanphone.dto.auth.RegisterResponse;
+import com.example.webbanphone.entities.RefreshToken;
 import com.example.webbanphone.entities.Role;
 import com.example.webbanphone.entities.User;
 import com.example.webbanphone.repositories.RoleRepository;
@@ -14,6 +19,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
@@ -25,19 +31,23 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(
             UserRepository userRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         if (request == null || isBlank(request.email()) || isBlank(request.password())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required");
@@ -56,10 +66,12 @@ public class AuthService {
         }
 
         String role = user.getRole() != null ? user.getRole().getName() : "user";
-        String token = jwtService.generateToken(user.getId(), user.getEmail(), role);
+        String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return new LoginResponse(
-                token,
+                accessToken,
+                refreshToken.getToken(),
                 "Bearer",
                 jwtService.getExpirationMs(),
                 user.getId(),
@@ -104,6 +116,37 @@ public class AuthService {
                 savedUser.getEmail(),
                 userRole.getName()
         );
+    }
+
+    @Transactional
+    public RefreshTokenResponse refreshAccessToken(RefreshTokenRequest request) {
+        if (request == null || isBlank(request.refreshToken())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token is required");
+        }
+
+        RefreshToken oldRefreshToken = refreshTokenService.validateRefreshToken(request.refreshToken());
+        User user = oldRefreshToken.getUser();
+
+        String role = user.getRole() != null ? user.getRole().getName() : "user";
+        String newAccessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
+
+        // Rotate refresh token: thu hồi cái cũ, tạo cái mới
+        refreshTokenService.revokeRefreshToken(request.refreshToken());
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        return new RefreshTokenResponse(
+                newAccessToken,
+                newRefreshToken.getToken(),
+                "Bearer",
+                jwtService.getExpirationMs()
+        );
+    }
+
+    @Transactional
+    public void logout(LogoutRequest request) {
+        if (request != null && !isBlank(request.refreshToken())) {
+            refreshTokenService.revokeRefreshToken(request.refreshToken());
+        }
     }
 
     public MeResponse getCurrentUser(String email) {

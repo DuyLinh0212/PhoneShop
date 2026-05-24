@@ -7,6 +7,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
   tokenType: string;
   expiresIn: number;
   userId: number;
@@ -29,8 +30,20 @@ export interface RegisterResponse {
   role: string;
 }
 
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+}
+
 export interface AuthSession {
   accessToken: string;
+  refreshToken: string;
   tokenType: string;
   expiresIn: number;
   user: AppUser;

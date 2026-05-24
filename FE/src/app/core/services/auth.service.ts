@@ -7,6 +7,8 @@ import {
   AuthSession,
   LoginRequest,
   LoginResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
   RegisterRequest,
   RegisterResponse
 } from '../models/auth.models';
@@ -37,13 +39,41 @@ export class AuthService {
     return this.http.post<RegisterResponse>(`${API_BASE_URL}/auth/register`, payload);
   }
 
+  refreshToken(): Observable<RefreshTokenResponse> {
+    const currentRefreshToken = this.sessionSignal()?.refreshToken;
+    const payload: RefreshTokenRequest = { refreshToken: currentRefreshToken ?? '' };
+    return this.http.post<RefreshTokenResponse>(`${API_BASE_URL}/auth/refresh`, payload).pipe(
+      tap((response) => {
+        const current = this.sessionSignal();
+        if (current) {
+          const updated: AuthSession = {
+            ...current,
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+            tokenType: response.tokenType,
+            expiresIn: response.expiresIn
+          };
+          this.persistSession(updated);
+        }
+      })
+    );
+  }
+
   logout(): void {
+    const refreshToken = this.sessionSignal()?.refreshToken;
     this.sessionSignal.set(null);
     localStorage.removeItem(this.storageKey);
+    if (refreshToken) {
+      this.http.post(`${API_BASE_URL}/auth/logout`, { refreshToken }).subscribe({ error: () => {} });
+    }
   }
 
   getAccessToken(): string | null {
     return this.sessionSignal()?.accessToken ?? null;
+  }
+
+  getRefreshToken(): string | null {
+    return this.sessionSignal()?.refreshToken ?? null;
   }
 
   resolveRoleId(role: string | null | undefined): number {
@@ -70,6 +100,7 @@ export class AuthService {
 
     return {
       accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
       tokenType: response.tokenType,
       expiresIn: response.expiresIn,
       user

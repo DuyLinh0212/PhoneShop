@@ -51,14 +51,8 @@ public class DataInitializer implements CommandLineRunner {
         admin.setRole(adminRole);
         admin.setIsActive(true);
 
-        if (isBlank(admin.getPasswordHash()) || admin.getPasswordHash().contains("exampleHashedPassword")) {
-            admin.setPasswordHash(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD));
-        }
+        admin.setPasswordHash(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD));
 
         userRepository.save(admin);
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
     }
 }
