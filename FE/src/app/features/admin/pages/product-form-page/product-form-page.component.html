@@ -38,7 +38,7 @@
         <div class="two-col">
           <label>
             <span>Tên sản phẩm <b>*</b></span>
-            <input [(ngModel)]="product.name" name="name" />
+            <input [(ngModel)]="product.name" name="name" (input)="onNameInput()" placeholder="Nhập tên sản phẩm..." />
           </label>
           <label>
             <span>Thương hiệu <b>*</b></span>

@@ -1,5 +1,6 @@
 package com.example.webbanphone.controllers;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,6 +30,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuth(AuthenticationException ex) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String message = "Dữ liệu bị trùng lặp (SKU hoặc slug đã tồn tại). Vui lòng kiểm tra lại.";
+        String cause = ex.getRootCause() != null ? ex.getRootCause().getMessage() : "";
+        if (cause.toLowerCase().contains("sku")) {
+            message = "Mã SKU đã tồn tại. Vui lòng dùng SKU khác.";
+        }
+        return buildResponse(HttpStatus.CONFLICT, message);
     }
 
     @ExceptionHandler(ResponseStatusException.class)

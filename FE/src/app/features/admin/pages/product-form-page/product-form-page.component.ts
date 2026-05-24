@@ -37,74 +37,25 @@ export class ProductFormPageComponent {
   errorMessage = '';
   successMessage = '';
 
-  gallery = [
-    'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=160&q=80',
-    'https://images.unsplash.com/photo-1616410011236-7a42121dd981?auto=format&fit=crop&w=160&q=80',
-    'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=160&q=80',
-    'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=160&q=80'
-  ];
+  gallery: string[] = [];
 
-  readonly variants: ProductVariant[] = [
-    {
-      color: '#c5c6c2',
-      name: 'Titan Tự nhiên / 256GB',
-      sku: 'IP15PM-256-TITAN-NAT',
-      price: '34.990.000',
-      salePrice: '29.490.000',
-      cost: '24.000.000',
-      stock: 50,
-      image: this.gallery[0]
-    },
-    {
-      color: '#748796',
-      name: 'Titan Xanh / 256GB',
-      sku: 'IP15PM-256-TITAN-BLU',
-      price: '34.990.000',
-      salePrice: '29.490.000',
-      cost: '24.000.000',
-      stock: 45,
-      image: this.gallery[1]
-    },
-    {
-      color: '#2e3237',
-      name: 'Titan Đen / 256GB',
-      sku: 'IP15PM-256-TITAN-BLK',
-      price: '34.990.000',
-      salePrice: '29.490.000',
-      cost: '24.000.000',
-      stock: 30,
-      image: this.gallery[2]
-    },
-    {
-      color: '#f2f2ef',
-      name: 'Titan Trắng / 256GB',
-      sku: 'IP15PM-256-TITAN-WHT',
-      price: '34.990.000',
-      salePrice: '29.490.000',
-      cost: '24.000.000',
-      stock: 40,
-      image: this.gallery[3]
-    }
-  ];
+  variants: ProductVariant[] = [];
 
   product = {
-    name: 'iPhone 15 Pro Max',
+    name: '',
     brand: 'Apple',
     category: 'Điện thoại',
     status: 'Đang kinh doanh',
-    shortDescription:
-      'iPhone 15 Pro Max với thiết kế titan mạnh mẽ, chip A17 Pro vượt trội và hệ thống camera đỉnh cao.',
-    detail:
-      'iPhone 15 Pro Max là chiếc iPhone cao cấp nhất của Apple với khung titan siêu nhẹ và bền, chip A17 Pro mạnh mẽ, hệ thống camera 48MP chuyên nghiệp và thời lượng pin tốt nhất trên iPhone.\n\n- Thiết kế titan sang trọng, bền bỉ\n- Chip A17 Pro - Hiệu năng vượt trội\n- Camera chính 48MP - Chụp ảnh chuyên nghiệp\n- Màn hình Super Retina XDR 6.7 inch\n- Thời lượng pin cả ngày dài',
-    slug: 'iphone-15-pro-max',
-    seoTitle: 'iPhone 15 Pro Max - Chính hãng VN/A | PhoneStore',
-    seoDescription:
-      'Mua iPhone 15 Pro Max chính hãng VN/A tại PhoneStore. Giá tốt, trả góp 0%, bảo hành chính hãng 12 tháng.',
-    sku: 'IP15PM-256-TITAN-NAT',
-    releaseDate: '2023-09-22',
+    shortDescription: '',
+    detail: '',
+    slug: '',
+    seoTitle: '',
+    seoDescription: '',
+    sku: '',
+    releaseDate: '',
     warranty: 12,
     origin: 'Việt Nam',
-    manufacturer: 'Apple'
+    manufacturer: ''
   };
 
   ngOnInit(): void {
@@ -116,15 +67,44 @@ export class ProductFormPageComponent {
           this.product.shortDescription = product.description || '';
           this.product.detail = product.description || '';
           this.product.brand = this.brandName(product.brandId);
-          this.product.category = product.categoryId === 2 ? 'Phụ kiện' : 'Điện thoại';
+          this.product.category = product.categoryId === 2 ? 'Phụ kiện' : (product.categoryId === 3 ? 'Máy tính bảng' : 'Điện thoại');
           this.product.status = product.isActive ? 'Đang kinh doanh' : 'Ngừng kinh doanh';
           this.product.seoTitle = `${product.name} | PhoneStore`;
           this.product.seoDescription = product.description || '';
-          this.product.sku = product.variants?.[0]?.sku || this.product.sku;
-          this.gallery = product.images?.map((image) => image.imageUrl).filter(Boolean) || this.gallery;
+          this.product.sku = product.variants?.[0]?.sku || '';
+          this.product.manufacturer = product.name.split(' ')[0] || '';
+          this.gallery = (product.images ?? []).map((img) => img.imageUrl).filter(Boolean);
+          this.variants = (product.variants ?? []).map((v) => ({
+            color: '#888888',
+            name: v.color || '',
+            sku: v.sku || '',
+            price: String(v.price ?? 0),
+            salePrice: String(v.salePrice ?? 0),
+            cost: '0',
+            stock: v.stock ?? 0,
+            image: this.gallery[0] || ''
+          }));
         }
       });
     }
+  }
+
+  onNameInput(): void {
+    if (!this.isEditMode) {
+      this.product.slug = this.toSlug(this.product.name);
+    }
+  }
+
+  private toSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
   }
 
   onImageSelected(event: Event): void {
@@ -244,23 +224,25 @@ export class ProductFormPageComponent {
   }
 
   private toPayload(): ProductPayload {
+    const ts = Date.now();
     return {
       brandId: this.brandId(this.product.brand),
       categoryId: this.categoryId(this.product.category),
       name: this.product.name,
-      slug: this.product.slug,
+      slug: this.product.slug || this.toSlug(this.product.name),
       description: this.product.detail || this.product.shortDescription,
       basePrice: this.parsePrice(this.variants[0]?.salePrice || this.variants[0]?.price),
-      thumbnail: this.gallery[0],
+      thumbnail: this.gallery[0] || undefined,
       isActive: this.product.status === 'Đang kinh doanh',
       isFeatured: true,
-      variants: this.variants.map((variant) => ({
+      variants: this.variants.map((variant, i) => ({
         color: variant.name,
         storage: this.extractStorage(variant.name),
         price: this.parsePrice(variant.price),
         salePrice: this.parsePrice(variant.salePrice),
         stock: variant.stock,
-        sku: variant.sku,
+        // Thêm timestamp vào SKU khi tạo mới để đảm bảo không trùng
+        sku: this.isEditMode ? variant.sku : `${variant.sku || 'VAR'}-${ts}-${i}`,
         isActive: true
       })),
       images: this.gallery.map((imageUrl, index) => ({
@@ -269,10 +251,10 @@ export class ProductFormPageComponent {
         sortOrder: index
       })),
       specs: [
-        { specKey: 'SKU', specValue: this.product.sku, sortOrder: 1 },
+        ...(this.product.sku ? [{ specKey: 'SKU', specValue: this.product.sku, sortOrder: 1 }] : []),
         { specKey: 'Bảo hành', specValue: `${this.product.warranty} tháng`, sortOrder: 2 },
         { specKey: 'Xuất xứ', specValue: this.product.origin, sortOrder: 3 },
-        { specKey: 'Nhà sản xuất', specValue: this.product.manufacturer, sortOrder: 4 }
+        ...(this.product.manufacturer ? [{ specKey: 'Nhà sản xuất', specValue: this.product.manufacturer, sortOrder: 4 }] : [])
       ]
     };
   }
