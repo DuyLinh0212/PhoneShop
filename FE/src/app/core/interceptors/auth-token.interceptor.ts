@@ -21,19 +21,18 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(authorizedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Nếu lỗi 401 và có refresh token thì thử làm mới access token
       if (error.status === 401 && authService.getRefreshToken()) {
         return authService.refreshToken().pipe(
+          catchError((refreshError) => {
+            // Chỉ logout khi refresh token thất bại, KHÔNG logout khi retry thất bại
+            authService.logout();
+            return throwError(() => refreshError);
+          }),
           switchMap((tokenResponse) => {
             const retryRequest = request.clone({
               setHeaders: { Authorization: `Bearer ${tokenResponse.accessToken}` }
             });
             return next(retryRequest);
-          }),
-          catchError((refreshError) => {
-            // Refresh token hết hạn hoặc không hợp lệ -> đăng xuất
-            authService.logout();
-            return throwError(() => refreshError);
           })
         );
       }

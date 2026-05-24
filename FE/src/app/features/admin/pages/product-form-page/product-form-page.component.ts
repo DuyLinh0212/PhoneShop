@@ -192,10 +192,13 @@ export class ProductFormPageComponent {
   }
 
   private resolveSaveError(error: any): string {
-    if (error?.status === 401 || error?.status === 403) {
-      this.authService.logout();
+    if (error?.status === 401) {
       this.router.navigate(['/auth/login']);
       return 'Phiên đăng nhập hết hạn. Đang chuyển về trang đăng nhập...';
+    }
+
+    if (error?.status === 403) {
+      return 'Bạn không có quyền thực hiện thao tác này. Vui lòng kiểm tra lại tài khoản.';
     }
 
     if (error?.status === 0) {

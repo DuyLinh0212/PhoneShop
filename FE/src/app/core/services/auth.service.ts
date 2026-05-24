@@ -1,6 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, Observable, tap } from 'rxjs';
+import { finalize, map, Observable, shareReplay, tap } from 'rxjs';
 
 import { API_BASE_URL, ADMIN_ROLE_ID } from '../constants/api.constants';
 import {
@@ -26,6 +26,8 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this.sessionSignal() !== null);
   readonly isAdmin = computed(() => this.sessionSignal()?.user.roleId === ADMIN_ROLE_ID);
 
+  private ongoingRefresh$: Observable<RefreshTokenResponse> | null = null;
+
   constructor(private readonly http: HttpClient) {}
 
   login(payload: LoginRequest): Observable<AuthSession> {
@@ -40,23 +42,33 @@ export class AuthService {
   }
 
   refreshToken(): Observable<RefreshTokenResponse> {
+    if (this.ongoingRefresh$) {
+      return this.ongoingRefresh$;
+    }
+
     const currentRefreshToken = this.sessionSignal()?.refreshToken;
     const payload: RefreshTokenRequest = { refreshToken: currentRefreshToken ?? '' };
-    return this.http.post<RefreshTokenResponse>(`${API_BASE_URL}/auth/refresh`, payload).pipe(
+
+    this.ongoingRefresh$ = this.http.post<RefreshTokenResponse>(`${API_BASE_URL}/auth/refresh`, payload).pipe(
       tap((response) => {
         const current = this.sessionSignal();
         if (current) {
-          const updated: AuthSession = {
+          this.persistSession({
             ...current,
             accessToken: response.accessToken,
             refreshToken: response.refreshToken,
             tokenType: response.tokenType,
             expiresIn: response.expiresIn
-          };
-          this.persistSession(updated);
+          });
         }
-      })
+      }),
+      finalize(() => {
+        this.ongoingRefresh$ = null;
+      }),
+      shareReplay(1)
     );
+
+    return this.ongoingRefresh$;
   }
 
   logout(): void {
