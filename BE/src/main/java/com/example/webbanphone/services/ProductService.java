@@ -30,8 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class ProductService {
@@ -164,9 +166,26 @@ public class ProductService {
         }
 
         if (request.variants() != null) {
+            Set<String> requestSkus = new HashSet<>();
             for (ProductVariantRequest variant : request.variants()) {
                 if (variant.price() == null || variant.price().compareTo(BigDecimal.ZERO) < 0) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Each variant requires a valid price");
+                }
+
+                String normalizedSku = normalizeSku(variant.sku());
+                if (normalizedSku == null) {
+                    continue;
+                }
+
+                if (!requestSkus.add(normalizedSku)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Duplicate SKU in product variants");
+                }
+
+                boolean skuExists = currentProductId == null
+                        ? variantRepository.existsBySkuIgnoreCase(normalizedSku)
+                        : variantRepository.existsBySkuIgnoreCaseAndProductIdNot(normalizedSku, currentProductId);
+                if (skuExists) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Product variant SKU already exists");
                 }
             }
         }
@@ -205,6 +224,9 @@ public class ProductService {
         imageRepository.deleteByProductId(productId);
         specRepository.deleteByProductId(productId);
         variantRepository.deleteByProductId(productId);
+        imageRepository.flush();
+        specRepository.flush();
+        variantRepository.flush();
 
         if (request.variants() != null) {
             request.variants().forEach(variantRequest -> saveVariant(productId, variantRequest));
@@ -346,5 +368,9 @@ public class ProductService {
 
     private String trimToNull(String value) {
         return isBlank(value) ? null : value.trim();
+    }
+
+    private String normalizeSku(String value) {
+        return isBlank(value) ? null : value.trim().toLowerCase(Locale.ROOT);
     }
 }

@@ -34,9 +34,9 @@ main,
 
 .header-main {
   display: grid;
-  grid-template-columns: 235px minmax(280px, 1fr) auto;
+  grid-template-columns: 240px minmax(360px, 1fr) minmax(430px, auto);
   align-items: center;
-  gap: 28px;
+  gap: 24px;
   padding: 18px 0 14px;
 }
 
@@ -124,7 +124,9 @@ main,
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 24px;
+  justify-content: flex-end;
+  gap: 18px;
+  min-width: 0;
 }
 
 .quick-action {
@@ -132,17 +134,25 @@ main,
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .action-icon {
-  width: 27px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 999px;
+  background: #f2f4f7;
   color: #020617;
-  font-size: 26px;
+  font-size: 16px;
   line-height: 1;
   text-align: center;
+  font-weight: 800;
 }
 
 .quick-action small,
@@ -162,14 +172,21 @@ main,
   font-weight: 700;
 }
 
-.account-action {
+.quick-action strong {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-action,
+.account-tools {
   gap: 8px;
 }
 
 .logout-btn {
   border: 0;
   border-radius: 6px;
-  padding: 7px 9px;
+  padding: 10px 12px;
   background: #eef4ff;
   color: var(--primary);
   font-size: 12px;

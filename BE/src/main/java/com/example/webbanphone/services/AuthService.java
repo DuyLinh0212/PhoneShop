@@ -61,7 +61,8 @@ public class AuthService {
             throw new DisabledException("Account is disabled");
         }
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        String passwordHash = user.getPasswordHash() == null ? "" : user.getPasswordHash().trim();
+        if (!passwordEncoder.matches(request.password(), passwordHash)) {
             throw new BadCredentialsException("Invalid email or password");
         }
 

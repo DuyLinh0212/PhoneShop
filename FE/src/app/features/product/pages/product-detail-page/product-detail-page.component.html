@@ -54,14 +54,15 @@
         <div class="option-group">
           <p>Màu sắc: <b>{{ selectedVariant?.color || 'Titan tự nhiên' }}</b></p>
           <div class="color-options">
-            @for (variant of colorOptions; track variant.sku || variant.color; let index = $index) {
+            @for (variant of colorOptions; track variant.color; let index = $index) {
               <button
                 type="button"
-                [class.active]="index === selectedVariantIndex"
-                (click)="selectVariant(index)"
+                [class.active]="variant.color === selectedVariant?.color"
+                (click)="selectColor(variant.color)"
                 [attr.aria-label]="variant.color || 'Màu sản phẩm'"
+                [title]="variant.color || 'Màu sản phẩm'"
               >
-                <span [style.background]="index === 0 ? '#6c6253' : index === 1 ? '#27395f' : index === 2 ? '#8994a3' : '#d5d2ce'"></span>
+                <span [style.background]="colorSwatch(variant.color)"></span>
               </button>
             }
           </div>
@@ -70,8 +71,8 @@
         <div class="option-group">
           <p>Dung lượng: <b>{{ selectedVariant?.storage || '256GB' }}</b></p>
           <div class="storage-options">
-            @for (storage of storageOptions; track storage; let index = $index) {
-              <button type="button" [class.active]="index === selectedVariantIndex" (click)="selectVariant(index)">
+            @for (storage of storageOptions; track storage) {
+              <button type="button" [class.active]="storage === (selectedVariant?.storage || '256GB')" (click)="selectStorage(storage)">
                 {{ storage }}
               </button>
             }
@@ -87,14 +88,18 @@
 
         <div class="quantity-row">
           <span>Số lượng</span>
-          <button type="button">−</button>
-          <strong>1</strong>
-          <button type="button">+</button>
+          <button type="button" (click)="decreaseQuantity()">−</button>
+          <strong>{{ quantity }}</strong>
+          <button type="button" (click)="increaseQuantity()">+</button>
         </div>
 
+        @if (actionMessage) {
+          <p class="action-message">{{ actionMessage }}</p>
+        }
+
         <div class="buy-actions">
-          <button type="button" class="outline">🛒 Thêm vào giỏ hàng</button>
-          <button type="button" class="primary">Mua ngay</button>
+          <button type="button" class="outline" (click)="addToCart()">Thêm vào giỏ hàng</button>
+          <button type="button" class="primary" (click)="buyNow()">Mua ngay</button>
         </div>
       </section>
     </div>

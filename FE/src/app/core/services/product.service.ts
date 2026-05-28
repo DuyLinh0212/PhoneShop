@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../constants/api.constants';
 import { Product } from '../models/product.models';
 
 export interface ProductVariantPayload {
+  id?: number;
   color?: string;
   storage?: string;
   ram?: string;

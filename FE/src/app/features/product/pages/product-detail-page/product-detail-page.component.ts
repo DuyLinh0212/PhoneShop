@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { API_BASE_URL } from '../../../../core/constants/api.constants';
+import { CartService } from '../../../../core/services/cart.service';
 import { ProductDetail, ProductService, ProductVariantPayload } from '../../../../core/services/product.service';
 
 @Component({
@@ -17,7 +18,9 @@ export class ProductDetailPageComponent implements OnInit {
   errorMessage = '';
   selectedImage = '';
   selectedVariantIndex = 0;
+  quantity = 1;
   activeTab: 'specs' | 'description' | 'reviews' | 'questions' = 'specs';
+  actionMessage = '';
 
   readonly fallbackImage =
     'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=900&q=85';
@@ -38,7 +41,9 @@ export class ProductDetailPageComponent implements OnInit {
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly productService: ProductService
+    private readonly router: Router,
+    private readonly productService: ProductService,
+    private readonly cartService: CartService
   ) {}
 
   ngOnInit(): void {
@@ -93,11 +98,25 @@ export class ProductDetailPageComponent implements OnInit {
 
   get colorOptions(): ProductVariantPayload[] {
     const variants = this.product?.variants ?? [];
-    return variants.length > 0 ? variants : this.fallbackVariants;
+    const source = variants.length > 0 ? variants : this.fallbackVariants;
+    const seenColors = new Set<string>();
+
+    return source.filter((variant) => {
+      const key = this.colorKey(variant.color);
+      if (seenColors.has(key)) {
+        return false;
+      }
+
+      seenColors.add(key);
+      return true;
+    });
   }
 
   get storageOptions(): string[] {
-    const values = this.colorOptions.map((variant) => variant.storage || '256GB');
+    const selectedColor = this.colorKey(this.selectedVariant?.color);
+    const variants = (this.product?.variants?.length ? this.product.variants : this.fallbackVariants)
+      .filter((variant) => this.colorKey(variant.color) === selectedColor);
+    const values = variants.map((variant) => variant.storage || '256GB');
     return [...new Set(values)];
   }
 
@@ -113,8 +132,74 @@ export class ProductDetailPageComponent implements OnInit {
     this.selectedVariantIndex = index;
   }
 
+  selectColor(color: string | undefined): void {
+    const variants = this.product?.variants?.length ? this.product.variants : this.fallbackVariants;
+    const currentStorage = this.selectedVariant?.storage;
+    const selectedColor = this.colorKey(color);
+    const sameStorageIndex = variants.findIndex(
+      (variant) => this.colorKey(variant.color) === selectedColor && variant.storage === currentStorage
+    );
+
+    this.selectedVariantIndex = sameStorageIndex >= 0
+      ? sameStorageIndex
+      : variants.findIndex((variant) => this.colorKey(variant.color) === selectedColor);
+  }
+
+  selectStorage(storage: string): void {
+    const variants = this.product?.variants?.length ? this.product.variants : this.fallbackVariants;
+    const selectedColor = this.colorKey(this.selectedVariant?.color);
+    const nextIndex = variants.findIndex(
+      (variant) => this.colorKey(variant.color) === selectedColor && (variant.storage || '256GB') === storage
+    );
+
+    if (nextIndex >= 0) {
+      this.selectedVariantIndex = nextIndex;
+    }
+  }
+
   selectImage(imageUrl: string): void {
     this.selectedImage = imageUrl;
+  }
+
+  decreaseQuantity(): void {
+    this.quantity = Math.max(1, this.quantity - 1);
+  }
+
+  increaseQuantity(): void {
+    const stock = this.selectedVariant?.stock ?? 99;
+    this.quantity = Math.min(stock, this.quantity + 1);
+  }
+
+  addToCart(): void {
+    const variantId = this.selectedVariant?.id;
+    if (!variantId) {
+      this.actionMessage = 'Sản phẩm chưa có biến thể hợp lệ.';
+      return;
+    }
+
+    this.cartService.addItem(variantId, this.quantity).subscribe({
+      next: () => {
+        this.actionMessage = 'Đã thêm sản phẩm vào giỏ hàng.';
+      },
+      error: (error) => {
+        this.actionMessage = error?.error?.message ?? 'Không thể thêm vào giỏ hàng.';
+      }
+    });
+  }
+
+  buyNow(): void {
+    const variantId = this.selectedVariant?.id;
+    if (!variantId) {
+      this.actionMessage = 'Sản phẩm chưa có biến thể hợp lệ.';
+      return;
+    }
+
+    this.cartService.addItem(variantId, this.quantity).subscribe({
+      next: () => this.router.navigate(['/cart']),
+      error: (error) => {
+        this.actionMessage = error?.error?.message ?? 'Không thể mua sản phẩm này.';
+      }
+    });
   }
 
   brandName(brandId: number | undefined): string {
@@ -149,5 +234,43 @@ export class ProductDetailPageComponent implements OnInit {
     }
 
     return imageUrl;
+  }
+
+  colorSwatch(color: string | undefined): string {
+    const normalized = this.normalizeText(color);
+    const colorMap: Array<[string, string]> = [
+      ['titan sa mac', '#b9a88f'],
+      ['sa mac', '#b9a88f'],
+      ['titan tu nhien', '#8b8172'],
+      ['tu nhien', '#8b8172'],
+      ['titan trang', '#e6e4df'],
+      ['trang', '#f3f4f6'],
+      ['titan den', '#2b2f38'],
+      ['den', '#1f2937'],
+      ['xanh', '#26395f'],
+      ['hong', '#f4b6c2'],
+      ['do', '#dc2626'],
+      ['vang', '#eab308'],
+      ['bac', '#cbd5e1'],
+      ['xam', '#64748b'],
+      ['cam', '#b77942'],
+      ['tim', '#7c3aed']
+    ];
+
+    return colorMap.find(([name]) => normalized.includes(name))?.[1] ?? '#94a3b8';
+  }
+
+  private colorKey(color: string | undefined): string {
+    return this.normalizeText(color || 'default');
+  }
+
+  private normalizeText(value: string | undefined): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .trim()
+      .toLowerCase();
   }
 }

@@ -26,12 +26,14 @@
         </a>
 
         @if (user(); as currentUser) {
-          <div class="quick-action account-action">
+          <a routerLink="/profile" class="quick-action account-action">
             <span class="action-icon" aria-hidden="true">U</span>
             <span>
               <small>Tài khoản</small>
               <strong>{{ currentUser.fullName }}</strong>
             </span>
+          </a>
+          <div class="account-tools">
             <button type="button" class="logout-btn" (click)="logout()">Đăng xuất</button>
           </div>
         } @else {
@@ -44,13 +46,13 @@
           </a>
         }
 
-        <a href="#" class="quick-action cart-action">
+        <a routerLink="/cart" class="quick-action cart-action">
           <span class="action-icon" aria-hidden="true">C</span>
           <span>
             <small>Giỏ hàng</small>
-            <strong>0</strong>
+            <strong>{{ cart().totalQuantity }}</strong>
           </span>
-          <em>0</em>
+          <em>{{ cart().totalQuantity }}</em>
         </a>
       </div>
     </div>

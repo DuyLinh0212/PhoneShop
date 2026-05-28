@@ -1,0 +1,148 @@
+<section class="orders-admin">
+  <div class="title-row">
+    <div>
+      <p>ADMIN VIEW</p>
+      <h1>Quản lý đơn hàng</h1>
+    </div>
+  </div>
+
+  <section class="metric-grid">
+    <article><span>□</span><small>Tổng đơn</small><strong>{{ count() }}</strong></article>
+    <article><span>◷</span><small>Chờ xác nhận</small><strong>{{ count('pending') }}</strong></article>
+    <article><span>⚙</span><small>Đang xử lý</small><strong>{{ count('processing') + count('confirmed') }}</strong></article>
+    <article><span>▣</span><small>Đang giao</small><strong>{{ count('shipping') }}</strong></article>
+    <article><span>✓</span><small>Hoàn thành</small><strong>{{ count('delivered') }}</strong></article>
+    <article><span>×</span><small>Đã hủy</small><strong>{{ count('cancelled') }}</strong></article>
+  </section>
+
+  @if (message) {
+    <p class="message">{{ message }}</p>
+  }
+
+  <section class="orders-table-card">
+    <div class="filters">
+      <input [(ngModel)]="search" placeholder="Tìm mã đơn hàng, khách hàng..." />
+      <select [(ngModel)]="statusFilter" (change)="loadOrders()">
+        <option value="all">Trạng thái</option>
+        @for (status of statuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
+      <select [(ngModel)]="paymentFilter">
+        <option value="all">Thanh toán</option>
+        <option value="paid">Đã thanh toán</option>
+        <option value="unpaid">Chưa thanh toán</option>
+      </select>
+      <button type="button" class="export-btn">Xuất Excel</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mã đơn</th>
+            <th>Khách hàng</th>
+            <th>Sản phẩm</th>
+            <th>Ngày đặt</th>
+            <th>Thanh toán</th>
+            <th>Trạng thái</th>
+            <th>Tổng tiền</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of filteredOrders(); track order.id) {
+            <tr>
+              <td><a>#DH{{ order.id }}</a></td>
+              <td>
+                <strong>{{ order.customerName || order.shippingName }}</strong>
+                <small>{{ order.customerPhone || order.shippingPhone }}</small>
+              </td>
+              <td>
+                <div class="product-stack">
+                  @for (item of order.items.slice(0, 2); track item.id) {
+                    <span>{{ item.productName.charAt(0) }}</span>
+                  }
+                  @if (order.items.length > 2) {
+                    <em>+{{ order.items.length - 2 }}</em>
+                  }
+                </div>
+              </td>
+              <td>{{ formatDate(order.createdAt) }}</td>
+              <td><span [class]="paymentClass(order)">{{ paymentLabel(order) }}</span></td>
+              <td>
+                <select class="status-select" [ngModel]="order.status" (ngModelChange)="updateStatus(order, $event)">
+                  @for (status of nextStatusOptions(order); track status.value) {
+                    <option [value]="status.value">{{ status.label }}</option>
+                  }
+                </select>
+              </td>
+              <td><b>{{ formatPrice(order.totalAmount) }}</b></td>
+              <td>
+                <div class="row-actions">
+                  <button type="button" (click)="openDetail(order)">Xem</button>
+                  @if (order.paymentStatus !== 'paid') {
+                    <button type="button" (click)="markPaid(order)">Đã TT</button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="empty">Không có đơn hàng phù hợp.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  @if (selectedOrder) {
+    <div class="modal-backdrop" (click)="closeDetail()">
+      <section class="order-modal" (click)="$event.stopPropagation()">
+        <header>
+          <div>
+            <p>Chi tiết đơn hàng</p>
+            <h2>#DH{{ selectedOrder.id }}</h2>
+          </div>
+          <button type="button" (click)="closeDetail()">×</button>
+        </header>
+
+        <div class="detail-grid">
+          <article>
+            <small>Khách hàng</small>
+            <strong>{{ selectedOrder.customerName || selectedOrder.shippingName }}</strong>
+            <span>{{ selectedOrder.customerPhone || selectedOrder.shippingPhone }}</span>
+            <span>{{ selectedOrder.customerEmail || 'Không có email' }}</span>
+          </article>
+          <article>
+            <small>Giao hàng</small>
+            <strong>{{ selectedOrder.shippingName }}</strong>
+            <span>{{ selectedOrder.shippingPhone }}</span>
+            <span>{{ selectedOrder.shippingAddress }}</span>
+          </article>
+          <article>
+            <small>Trạng thái</small>
+            <strong>{{ statusLabel(selectedOrder.status) }}</strong>
+            <span>{{ paymentLabel(selectedOrder) }}</span>
+            <span>{{ formatDate(selectedOrder.createdAt) }}</span>
+          </article>
+        </div>
+
+        <div class="modal-items">
+          @for (item of selectedOrder.items; track item.id) {
+            <div>
+              <span>{{ item.productName }}</span>
+              <small>{{ item.variantInfo || 'Phiên bản tiêu chuẩn' }}</small>
+              <b>x{{ item.quantity }}</b>
+              <strong>{{ formatPrice(item.subtotal) }}</strong>
+            </div>
+          }
+        </div>
+
+        <footer>
+          <span>{{ itemCount(selectedOrder) }} sản phẩm</span>
+          <strong>{{ formatPrice(selectedOrder.totalAmount) }}</strong>
+        </footer>
+      </section>
+    </div>
+  }
+</section>

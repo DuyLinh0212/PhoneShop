@@ -1,0 +1,148 @@
+<section class="profile-page">
+  @if (profile) {
+    <aside class="profile-sidebar">
+      <div class="identity">
+        <span>{{ initials() }}</span>
+        <h2>{{ profile.fullName }}</h2>
+        <p>{{ profile.email }}</p>
+      </div>
+
+      <nav>
+        <button type="button" [class.active]="activeTab === 'info'" (click)="activeTab = 'info'">Thông tin cá nhân</button>
+        <button type="button" [class.active]="activeTab === 'orders'" (click)="activeTab = 'orders'">Đơn hàng của tôi</button>
+        <button type="button" [class.active]="activeTab === 'address'" (click)="activeTab = 'address'">Địa chỉ giao hàng</button>
+        <button type="button" [class.active]="activeTab === 'security'" (click)="activeTab = 'security'">Bảo mật tài khoản</button>
+        <button type="button" [class.active]="activeTab === 'favorites'" (click)="activeTab = 'favorites'">Sản phẩm yêu thích</button>
+      </nav>
+    </aside>
+
+    <div class="profile-content">
+      <section class="stats">
+        <article>
+          <span>□</span>
+          <div><small>Đơn hàng</small><strong>{{ profile.orderCount }}</strong></div>
+        </article>
+        <article>
+          <span>♡</span>
+          <div><small>Yêu thích</small><strong>{{ profile.wishlistCount }}</strong></div>
+        </article>
+        <article>
+          <span>☆</span>
+          <div><small>Điểm thưởng</small><strong>{{ profile.rewardPoints }}</strong></div>
+        </article>
+      </section>
+
+      @if (message) {
+        <p class="message">{{ message }}</p>
+      }
+
+      @if (activeTab === 'info') {
+        <section class="panel">
+          <h1>Hồ sơ cá nhân</h1>
+          <div class="form-grid">
+            <label>Họ và tên<input [(ngModel)]="form.fullName" /></label>
+            <label>Email<input [value]="profile.email" disabled /></label>
+            <label>Số điện thoại<input [(ngModel)]="form.phone" /></label>
+          </div>
+          <div class="actions">
+            <button type="button" (click)="saveProfile()">Lưu thay đổi</button>
+            <button type="button" class="light" (click)="loadProfile()">Hủy</button>
+          </div>
+        </section>
+      } @else if (activeTab === 'orders') {
+        <section class="panel orders-panel">
+          <h1>Đơn hàng của tôi</h1>
+
+          <div class="order-stats">
+            <article><span>□</span><small>Tất cả</small><strong>{{ countOrders() }}</strong></article>
+            <article><span>◷</span><small>Chờ xác nhận</small><strong>{{ countOrders('pending') }}</strong></article>
+            <article><span>▣</span><small>Đang giao</small><strong>{{ countOrders('shipping') }}</strong></article>
+            <article><span>✓</span><small>Hoàn thành</small><strong>{{ countOrders('delivered') }}</strong></article>
+            <article><span>×</span><small>Đã hủy</small><strong>{{ countOrders('cancelled') }}</strong></article>
+          </div>
+
+          <div class="order-toolbar">
+            <div class="status-tabs">
+              <button type="button" [class.active]="orderStatusFilter === 'all'" (click)="orderStatusFilter = 'all'">Tất cả</button>
+              <button type="button" [class.active]="orderStatusFilter === 'pending'" (click)="orderStatusFilter = 'pending'">Chờ xác nhận</button>
+              <button type="button" [class.active]="orderStatusFilter === 'processing'" (click)="orderStatusFilter = 'processing'">Đang xử lý</button>
+              <button type="button" [class.active]="orderStatusFilter === 'shipping'" (click)="orderStatusFilter = 'shipping'">Đang giao</button>
+              <button type="button" [class.active]="orderStatusFilter === 'delivered'" (click)="orderStatusFilter = 'delivered'">Hoàn thành</button>
+              <button type="button" [class.active]="orderStatusFilter === 'cancelled'" (click)="orderStatusFilter = 'cancelled'">Đã hủy</button>
+            </div>
+            <input class="order-search" [(ngModel)]="orderSearch" placeholder="Tìm mã đơn hàng..." />
+          </div>
+
+          @if (!filteredOrders().length) {
+            <p class="muted">Không có đơn hàng phù hợp.</p>
+          } @else {
+            <div class="order-list">
+              @for (order of filteredOrders(); track order.id) {
+                <article class="order-card">
+                  <div class="order-main">
+                    <div class="order-head">
+                      <strong>#DH{{ order.id }}</strong>
+                      <span>{{ formatDate(order.createdAt) }}</span>
+                      <em [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</em>
+                    </div>
+
+                    @for (item of order.items.slice(0, 2); track item.id) {
+                      <div class="order-line">
+                        <div>
+                          <b>{{ item.productName }}</b>
+                          <small>{{ item.variantInfo || 'Phiên bản tiêu chuẩn' }}</small>
+                        </div>
+                        <span>x{{ item.quantity }}</span>
+                        <strong>{{ formatPrice(item.subtotal) }}</strong>
+                      </div>
+                    }
+                  </div>
+
+                  <aside class="order-side">
+                    <span>{{ orderItemCount(order) }} sản phẩm</span>
+                    <small>Tổng tiền</small>
+                    <strong>{{ formatPrice(order.totalAmount) }}</strong>
+                    <button type="button">Xem chi tiết</button>
+                    @if (order.status === 'pending' || order.status === 'confirmed') {
+                      <button type="button" class="light-danger" (click)="cancelOrder(order)">Hủy đơn</button>
+                    } @else if (order.status === 'delivered') {
+                      <button type="button" class="light">Mua lại</button>
+                    } @else if (order.status === 'shipping') {
+                      <button type="button" class="light">Theo dõi đơn</button>
+                    }
+                  </aside>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      } @else if (activeTab === 'address') {
+        <section class="panel">
+          <h1>Địa chỉ mặc định</h1>
+          @if (profile.defaultAddress) {
+            <div class="address-card">
+              <strong>{{ profile.defaultAddress.fullName }}</strong>
+              <p>{{ profile.defaultAddress.street }}, {{ profile.defaultAddress.ward }}, {{ profile.defaultAddress.district }}, {{ profile.defaultAddress.province }}</p>
+              <span>{{ profile.defaultAddress.phone }}</span>
+            </div>
+          } @else {
+            <p class="muted">Chưa có địa chỉ mặc định trong database.</p>
+          }
+        </section>
+      } @else if (activeTab === 'security') {
+        <section class="panel security-panel">
+          <h1>Bảo mật tài khoản</h1>
+          <p>Tăng cường bảo mật cho tài khoản của bạn</p>
+          <button type="button" class="light">Đổi mật khẩu</button>
+        </section>
+      } @else {
+        <section class="panel">
+          <h1>Sản phẩm yêu thích</h1>
+          <p class="muted">Chức năng yêu thích sẽ dùng bảng wishlists trong bước tiếp theo.</p>
+        </section>
+      }
+    </div>
+  } @else {
+    <p class="message">Đang tải hồ sơ...</p>
+  }
+</section>
