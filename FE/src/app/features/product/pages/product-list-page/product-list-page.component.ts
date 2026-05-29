@@ -78,6 +78,16 @@ export class ProductListPageComponent implements OnInit {
     { icon: '$', title: 'Thanh toán an toàn', text: 'Nhiều phương thức' }
   ];
 
+  get inventorySummary(): { total: number; low: number; out: number } {
+    const total = this.products.reduce((sum, product) => sum + Number(product.totalStock ?? 0), 0);
+    const low = this.products.filter((product) => {
+      const stock = Number(product.totalStock ?? 0);
+      return stock > 0 && stock <= 5;
+    }).length;
+    const out = this.products.filter((product) => Number(product.totalStock ?? 0) <= 0).length;
+    return { total, low, out };
+  }
+
   readonly fallbackProducts: HomeProduct[] = [
     {
       id: 1001,
@@ -294,5 +304,27 @@ export class ProductListPageComponent implements OnInit {
     }
 
     return imageUrl;
+  }
+
+  stockLabel(stock: number | undefined): string {
+    const value = Number(stock ?? 0);
+    if (value <= 0) {
+      return 'Hết hàng';
+    }
+    if (value <= 5) {
+      return `Sắp hết: ${value}`;
+    }
+    return `Tồn kho: ${value}`;
+  }
+
+  stockTone(stock: number | undefined): string {
+    const value = Number(stock ?? 0);
+    if (value <= 0) {
+      return 'out';
+    }
+    if (value <= 5) {
+      return 'low';
+    }
+    return 'ok';
   }
 }

@@ -25,12 +25,13 @@
               <h3>{{ item.productName }}</h3>
               <p>{{ item.color }} / {{ item.storage }} / {{ item.ram }}</p>
               <small>SKU: {{ item.sku || 'N/A' }}</small>
+              <small>Tồn kho: {{ item.stock }}</small>
             </div>
             <strong>{{ formatPrice(item.unitPrice) }}</strong>
             <div class="qty">
-              <button type="button" (click)="updateQuantity(item, item.quantity - 1)">−</button>
+              <button type="button" (click)="updateQuantity(item, item.quantity - 1)" [disabled]="item.quantity <= 1">−</button>
               <span>{{ item.quantity }}</span>
-              <button type="button" (click)="updateQuantity(item, item.quantity + 1)">+</button>
+              <button type="button" (click)="updateQuantity(item, item.quantity + 1)" [disabled]="!canIncrease(item)">+</button>
             </div>
             <b>{{ formatPrice(item.subtotal) }}</b>
             <button type="button" class="remove" (click)="removeItem(item)">Xóa</button>

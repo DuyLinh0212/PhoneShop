@@ -172,6 +172,10 @@ public class ProductService {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Each variant requires a valid price");
                 }
 
+                if (variant.stock() != null && variant.stock() < 0) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Variant stock must be greater than or equal to 0");
+                }
+
                 String normalizedSku = normalizeSku(variant.sku());
                 if (normalizedSku == null) {
                     continue;
@@ -298,7 +302,11 @@ public class ProductService {
                 product.getThumbnail(),
                 product.getIsActive(),
                 product.getIsFeatured(),
-                product.getViewCount()
+                product.getViewCount(),
+                variantRepository.findByProductIdOrderByIdAsc(product.getId())
+                        .stream()
+                        .mapToInt(variant -> variant.getStock() == null ? 0 : variant.getStock())
+                        .sum()
         );
     }
 

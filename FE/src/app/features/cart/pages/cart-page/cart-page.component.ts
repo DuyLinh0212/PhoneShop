@@ -60,6 +60,12 @@ export class CartPageComponent implements OnInit {
       return;
     }
 
+    const invalidItem = this.cart.items.find((item) => item.quantity > item.stock || item.stock <= 0);
+    if (invalidItem) {
+      this.message = `${invalidItem.productName} không đủ tồn kho. Hiện còn ${invalidItem.stock} sản phẩm.`;
+      return;
+    }
+
     this.placingOrder = true;
     this.message = '';
     this.orderService.checkout(this.checkout).subscribe({
@@ -82,6 +88,10 @@ export class CartPageComponent implements OnInit {
 
   total(): number {
     return Number(this.cart.subtotal) + this.shippingFee();
+  }
+
+  canIncrease(item: CartItem): boolean {
+    return item.quantity < item.stock;
   }
 
   imageSrc(imageUrl?: string): string {

@@ -10,10 +10,12 @@ import com.example.webbanphone.dto.order.UpdateOrderStatusRequest;
 import com.example.webbanphone.entities.Order;
 import com.example.webbanphone.entities.OrderItem;
 import com.example.webbanphone.entities.OrderStatusLog;
+import com.example.webbanphone.entities.ProductVariant;
 import com.example.webbanphone.entities.User;
 import com.example.webbanphone.repositories.OrderItemRepository;
 import com.example.webbanphone.repositories.OrderRepository;
 import com.example.webbanphone.repositories.OrderStatusLogRepository;
+import com.example.webbanphone.repositories.ProductVariantRepository;
 import com.example.webbanphone.repositories.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderStatusLogRepository orderStatusLogRepository;
     private final UserRepository userRepository;
+    private final ProductVariantRepository variantRepository;
     private final CartService cartService;
 
     public OrderService(
@@ -44,12 +47,14 @@ public class OrderService {
             OrderItemRepository orderItemRepository,
             OrderStatusLogRepository orderStatusLogRepository,
             UserRepository userRepository,
+            ProductVariantRepository variantRepository,
             CartService cartService
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderStatusLogRepository = orderStatusLogRepository;
         this.userRepository = userRepository;
+        this.variantRepository = variantRepository;
         this.cartService = cartService;
     }
 
@@ -72,6 +77,7 @@ public class OrderService {
 
         String oldStatus = order.getStatus();
         order.setStatus("cancelled");
+        restoreStock(order);
         writeStatusLog(order.getId(), user.getId(), oldStatus, "cancelled", "Customer cancelled order");
         return toResponse(orderRepository.save(order));
     }
@@ -87,6 +93,8 @@ public class OrderService {
         if (cart.items().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty");
         }
+
+        deductStock(cart.items());
 
         BigDecimal shippingFee = cart.subtotal().compareTo(FREE_SHIP_FROM) >= 0 ? BigDecimal.ZERO : SHIPPING_FEE;
         BigDecimal totalAmount = cart.subtotal().add(shippingFee);
@@ -142,6 +150,9 @@ public class OrderService {
             validateStatusTransition(oldStatus, newStatus);
             if (!oldStatus.equals(newStatus)) {
                 order.setStatus(newStatus);
+                if ("cancelled".equals(newStatus)) {
+                    restoreStock(order);
+                }
                 writeStatusLog(order.getId(), changedBy == null ? null : changedBy.getId(), oldStatus, newStatus, trimToNull(request.note()));
             }
         }
@@ -249,6 +260,47 @@ public class OrderService {
         log.setNewStatus(newStatus);
         log.setNote(note);
         orderStatusLogRepository.save(log);
+    }
+
+    private void deductStock(List<CartItemResponse> items) {
+        items.stream()
+                .sorted((left, right) -> left.variantId().compareTo(right.variantId()))
+                .forEach(item -> {
+                    ProductVariant variant = variantRepository.findLockedById(item.variantId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product variant not found"));
+                    if (!Boolean.TRUE.equals(variant.getIsActive())) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product variant is inactive");
+                    }
+
+                    int stock = variant.getStock() == null ? 0 : variant.getStock();
+                    if (item.quantity() == null || item.quantity() <= 0) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid cart item quantity");
+                    }
+                    if (stock < item.quantity()) {
+                        throw new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "Không đủ tồn kho cho " + item.productName() + ". Hiện còn " + stock + " sản phẩm"
+                        );
+                    }
+
+                    variant.setStock(stock - item.quantity());
+                    variantRepository.save(variant);
+                });
+    }
+
+    private void restoreStock(Order order) {
+        orderItemRepository.findByOrderId(order.getId())
+                .stream()
+                .sorted((left, right) -> left.getVariantId().compareTo(right.getVariantId()))
+                .forEach(item -> {
+                    ProductVariant variant = variantRepository.findLockedById(item.getVariantId()).orElse(null);
+                    if (variant == null) {
+                        return;
+                    }
+                    int stock = variant.getStock() == null ? 0 : variant.getStock();
+                    variant.setStock(stock + item.getQuantity());
+                    variantRepository.save(variant);
+                });
     }
 
     private String variantInfo(CartItemResponse item) {

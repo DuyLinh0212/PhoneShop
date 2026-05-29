@@ -18,6 +18,21 @@
     } @else if (products.length === 0) {
       <p class="state">Chưa có sản phẩm nào.</p>
     } @else {
+      <div class="inventory-summary" aria-label="Tổng quan tồn kho">
+        <article>
+          <span>Tổng tồn</span>
+          <strong>{{ inventorySummary.total }}</strong>
+        </article>
+        <article>
+          <span>Sắp hết</span>
+          <strong>{{ inventorySummary.low }}</strong>
+        </article>
+        <article>
+          <span>Hết hàng</span>
+          <strong>{{ inventorySummary.out }}</strong>
+        </article>
+      </div>
+
       <div class="grid admin-grid">
         @for (product of products; track product.id) {
           <article class="admin-card">
@@ -31,6 +46,9 @@
               <p class="price">{{ formatPrice(product.basePrice) }}</p>
               <div class="meta">
                 <span>Lượt xem: {{ product.viewCount }}</span>
+                <span class="stock-pill" [class]="stockTone(product.totalStock)">
+                  {{ stockLabel(product.totalStock) }}
+                </span>
                 <a [routerLink]="['/admin/products', product.id, 'edit']">Sửa</a>
                 <span [class.inactive]="!product.isActive">
                   {{ product.isActive ? 'Đang bán' : 'Ngừng bán' }}

@@ -10,4 +10,5 @@ export interface Product {
   isActive: boolean;
   isFeatured: boolean;
   viewCount: number;
+  totalStock?: number;
 }

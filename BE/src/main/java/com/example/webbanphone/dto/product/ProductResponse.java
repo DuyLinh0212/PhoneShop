@@ -13,6 +13,7 @@ public record ProductResponse(
         String thumbnail,
         Boolean isActive,
         Boolean isFeatured,
-        Integer viewCount
+        Integer viewCount,
+        Integer totalStock
 ) {
 }

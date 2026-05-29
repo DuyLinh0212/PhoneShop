@@ -613,6 +613,32 @@
   gap: 16px;
 }
 
+.inventory-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.inventory-summary article {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.inventory-summary span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.inventory-summary strong {
+  color: var(--ink);
+  font-size: 24px;
+}
+
 .admin-card {
   overflow: hidden;
   border: 1px solid #e2e8f0;
@@ -663,6 +689,27 @@
   color: var(--primary);
   font-weight: 700;
   text-decoration: none;
+}
+
+.stock-pill {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-weight: 800;
+}
+
+.stock-pill.ok {
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.stock-pill.low {
+  background: #fff7ed;
+  color: #b54708;
+}
+
+.stock-pill.out {
+  background: #fef2f2;
+  color: #b42318;
 }
 
 .inactive {
