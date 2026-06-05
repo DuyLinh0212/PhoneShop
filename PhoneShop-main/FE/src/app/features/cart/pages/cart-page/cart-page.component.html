@@ -1,0 +1,80 @@
+<section class="cart-page">
+  <div class="page-head">
+    <div>
+      <p>Giỏ hàng</p>
+      <h1>Kiểm tra sản phẩm và đặt hàng</h1>
+    </div>
+    <a routerLink="/products">Tiếp tục mua sắm</a>
+  </div>
+
+  @if (message) {
+    <p class="message">{{ message }}</p>
+  }
+
+  <div class="cart-layout">
+    <section class="cart-list">
+      @if (loading) {
+        <p class="empty">Đang tải giỏ hàng...</p>
+      } @else if (!cart.items.length) {
+        <p class="empty">Giỏ hàng đang trống.</p>
+      } @else {
+        @for (item of cart.items; track item.id) {
+          <article class="cart-item">
+            <img [src]="imageSrc(item.thumbnail)" [alt]="item.productName" />
+            <div>
+              <h3>{{ item.productName }}</h3>
+              <p>{{ item.color }} / {{ item.storage }} / {{ item.ram }}</p>
+              <small>SKU: {{ item.sku || 'N/A' }}</small>
+              <small>Tồn kho: {{ item.stock }}</small>
+            </div>
+            <strong>{{ formatPrice(item.unitPrice) }}</strong>
+            <div class="qty">
+              <button type="button" (click)="updateQuantity(item, item.quantity - 1)" [disabled]="item.quantity <= 1">−</button>
+              <span>{{ item.quantity }}</span>
+              <button type="button" (click)="updateQuantity(item, item.quantity + 1)" [disabled]="!canIncrease(item)">+</button>
+            </div>
+            <b>{{ formatPrice(item.subtotal) }}</b>
+            <button type="button" class="remove" (click)="removeItem(item)">Xóa</button>
+          </article>
+        }
+      }
+    </section>
+
+    <aside class="checkout-card">
+      <h2>Thông tin giao hàng</h2>
+      <label>
+        Họ và tên
+        <input [(ngModel)]="checkout.shippingName" />
+      </label>
+      <label>
+        Số điện thoại
+        <input [(ngModel)]="checkout.shippingPhone" />
+      </label>
+      <label>
+        Địa chỉ nhận hàng
+        <textarea rows="3" [(ngModel)]="checkout.shippingAddress"></textarea>
+      </label>
+      <label>
+        Thanh toán
+        <select [(ngModel)]="checkout.paymentMethod">
+          <option value="cod">COD</option>
+          <option value="bank_transfer">Chuyển khoản</option>
+          <option value="momo">MoMo</option>
+          <option value="vnpay">VNPay</option>
+        </select>
+      </label>
+      <label>
+        Ghi chú
+        <textarea rows="2" [(ngModel)]="checkout.note"></textarea>
+      </label>
+
+      <div class="summary-row"><span>Tạm tính</span><b>{{ formatPrice(cart.subtotal) }}</b></div>
+      <div class="summary-row"><span>Vận chuyển</span><b>{{ formatPrice(shippingFee()) }}</b></div>
+      <div class="summary-row total"><span>Tổng cộng</span><b>{{ formatPrice(total()) }}</b></div>
+
+      <button type="button" [disabled]="placingOrder || !cart.items.length" (click)="placeOrder()">
+        Đặt hàng
+      </button>
+    </aside>
+  </div>
+</section>

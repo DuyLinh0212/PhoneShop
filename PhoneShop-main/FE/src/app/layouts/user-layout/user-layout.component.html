@@ -1,0 +1,117 @@
+<div class="store-shell">
+  <header class="site-header">
+    <div class="header-main">
+      <a routerLink="/" class="brand-block" aria-label="PhoneStore">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span>
+        </span>
+        <span>
+          <strong>PhoneStore</strong>
+          <small>Lựa chọn thông minh, giá tốt</small>
+        </span>
+      </a>
+
+      <form class="search-box" role="search" (ngSubmit)="searchProducts()">
+        <input
+          type="search"
+          name="keyword"
+          placeholder="Tìm kiếm điện thoại, thương hiệu..."
+          [(ngModel)]="searchTerm"
+        />
+        <button type="submit">Tìm kiếm</button>
+      </form>
+
+      <div class="header-actions">
+        <a href="tel:19001234" class="quick-action">
+          <span class="action-icon" aria-hidden="true">TEL</span>
+          <span>
+            <small>Hotline</small>
+            <strong>1900 1234</strong>
+          </span>
+        </a>
+
+        @if (user(); as currentUser) {
+          <a routerLink="/profile" class="quick-action account-action">
+            <span class="action-icon" aria-hidden="true">U</span>
+            <span>
+              <small>Tài khoản</small>
+              <strong>{{ currentUser.fullName }}</strong>
+            </span>
+          </a>
+          <div class="account-tools">
+            <button type="button" class="logout-btn" (click)="logout()">Đăng xuất</button>
+          </div>
+        } @else {
+          <a routerLink="/auth/login" class="quick-action">
+            <span class="action-icon" aria-hidden="true">U</span>
+            <span>
+              <small>Tài khoản</small>
+              <strong>Đăng nhập</strong>
+            </span>
+          </a>
+        }
+
+        <a routerLink="/cart" class="quick-action cart-action">
+          <span class="action-icon" aria-hidden="true">C</span>
+          <span>
+            <small>Giỏ hàng</small>
+            <strong>{{ cart().totalQuantity }}</strong>
+          </span>
+          <em>{{ cart().totalQuantity }}</em>
+        </a>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <nav class="nav-bar" aria-label="Điều hướng chính">
+        <a
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="nav-link"
+        >
+          Trang chủ
+        </a>
+        <a routerLink="/products" routerLinkActive="active" class="nav-link">Sản phẩm</a>
+        <a href="#" class="nav-link">Khuyến mãi</a>
+        <a href="#" class="nav-link">Tin tức</a>
+        <a href="#" class="nav-link">Hỗ trợ</a>
+        <a href="#" class="nav-link">Liên hệ</a>
+        <label class="nav-filter">
+          <span>Bộ lọc</span>
+          <select
+            name="headerFilter"
+            [(ngModel)]="selectedFilter"
+            (change)="applyHeaderFilter()"
+            aria-label="Bộ lọc sản phẩm"
+          >
+            <option value="all">Tất cả</option>
+            <option value="featured">Nổi bật</option>
+            <option value="sale">Đang giảm giá</option>
+            <option value="top-rated">Đánh giá cao</option>
+            <option value="in-stock">Còn hàng</option>
+          </select>
+        </label>
+      </nav>
+
+      <div class="benefits" aria-label="Cam kết dịch vụ">
+        <span><i>#</i><b>Bảo hành chính hãng</b><small>12-24 tháng</small></span>
+        <span><i>+</i><b>Miễn phí vận chuyển</b><small>Đơn từ 500.000đ</small></span>
+        <span><i>%</i><b>Trả góp 0%</b><small>Lãi suất 0%</small></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 PhoneStore. Đã đăng ký bản quyền.</p>
+    <div>
+      <a href="#">Chính sách bảo hành</a>
+      <a href="#">Vận chuyển & thanh toán</a>
+      <a href="#">Liên hệ</a>
+    </div>
+  </footer>
+</div>

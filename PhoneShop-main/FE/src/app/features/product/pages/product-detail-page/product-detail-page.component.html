@@ -1,0 +1,222 @@
+<section class="detail-page">
+  @if (loading) {
+    <p class="state">Đang tải thông tin sản phẩm...</p>
+  } @else if (errorMessage) {
+    <p class="state error">{{ errorMessage }}</p>
+  } @else if (product) {
+    <nav class="breadcrumb" aria-label="Đường dẫn">
+      <a routerLink="/products">Trang chủ</a>
+      <span>Điện thoại</span>
+      <span>{{ brandName(product.brandId) }}</span>
+      <strong>{{ product.name }}</strong>
+    </nav>
+
+    <div class="product-shell">
+      <section class="gallery-panel">
+        <div class="thumb-list" aria-label="Ảnh sản phẩm">
+          @for (image of gallery; track image; let index = $index) {
+            <button
+              type="button"
+              [class.active]="selectedImage === image"
+              (click)="selectImage(image)"
+              [attr.aria-label]="'Xem ảnh ' + (index + 1)"
+            >
+              <img [src]="imageSrc(image)" [alt]="product.name" />
+            </button>
+          }
+          <button type="button" class="video-button" aria-label="Video sản phẩm">▶<span>Video</span></button>
+        </div>
+
+        <div class="main-image">
+          <img [src]="imageSrc(selectedImage || gallery[0])" [alt]="product.name" />
+          <div class="image-dots" aria-hidden="true">
+            @for (image of gallery.slice(0, 5); track image) {
+              <span [class.active]="selectedImage === image"></span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="buy-panel">
+        <h1>{{ product.name }}</h1>
+        <div class="meta-row">
+          <span>Thương hiệu: <b>{{ brandName(product.brandId) }}</b></span>
+          <span class="rating">★ {{ reviewSummary.averageRating || '0.0' }} <small>({{ reviewSummary.totalReviews }} đánh giá)</small></span>
+          <span class="stock">{{ product.isActive ? 'Còn hàng' : 'Ngừng kinh doanh' }}</span>
+        </div>
+
+        <div class="price-row">
+          <strong>{{ formatPrice(displayPrice) }}</strong>
+          <del>{{ formatPrice(oldPrice) }}</del>
+          <em>-5%</em>
+        </div>
+
+        <div class="option-group">
+          <p>Màu sắc: <b>{{ selectedVariant?.color || 'Titan tự nhiên' }}</b></p>
+          <div class="color-options">
+            @for (variant of colorOptions; track variant.color; let index = $index) {
+              <button
+                type="button"
+                [class.active]="variant.color === selectedVariant?.color"
+                (click)="selectColor(variant.color)"
+                [attr.aria-label]="variant.color || 'Màu sản phẩm'"
+                [title]="variant.color || 'Màu sản phẩm'"
+              >
+                <span [style.background]="colorSwatch(variant.color)"></span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="option-group">
+          <p>Dung lượng: <b>{{ selectedVariant?.storage || '256GB' }}</b></p>
+          <div class="storage-options">
+            @for (storage of storageOptions; track storage) {
+              <button type="button" [class.active]="storage === (selectedVariant?.storage || '256GB')" (click)="selectStorage(storage)">
+                {{ storage }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="offer-box">
+          <strong>Ưu đãi</strong>
+          <span>Trả góp 0% qua thẻ tín dụng</span>
+          <span>Giảm thêm 300.000đ khi thanh toán online</span>
+          <span>Thu cũ đổi mới trợ giá đến 2.000.000đ</span>
+        </div>
+
+        <div class="quantity-row">
+          <span>Số lượng</span>
+          <button type="button" (click)="decreaseQuantity()">−</button>
+          <strong>{{ quantity }}</strong>
+          <button type="button" (click)="increaseQuantity()">+</button>
+        </div>
+
+        @if (actionMessage) {
+          <p class="action-message">{{ actionMessage }}</p>
+        }
+
+        <div class="buy-actions">
+          <button type="button" class="outline" (click)="addToCart()">Thêm vào giỏ hàng</button>
+          <button type="button" class="primary" (click)="buyNow()">Mua ngay</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="quick-spec-strip" aria-label="Thông số nhanh">
+      @for (spec of quickSpecs; track spec.label) {
+        <article>
+          <i>{{ spec.icon }}</i>
+          <span>{{ spec.label }}</span>
+        </article>
+      }
+    </section>
+
+    <section class="detail-content">
+      <div class="tab-row" role="tablist">
+        <button type="button" [class.active]="activeTab === 'specs'" (click)="activeTab = 'specs'">Thông số kỹ thuật</button>
+        <button type="button" [class.active]="activeTab === 'description'" (click)="activeTab = 'description'">Mô tả sản phẩm</button>
+        <button type="button" [class.active]="activeTab === 'reviews'" (click)="activeTab = 'reviews'">Đánh giá ({{ reviewSummary.totalReviews }})</button>
+        <button type="button" [class.active]="activeTab === 'questions'" (click)="activeTab = 'questions'">Hỏi đáp</button>
+      </div>
+
+      <div class="tab-panel">
+        @if (activeTab === 'specs') {
+          <table>
+            <tbody>
+              @if (product.specs?.length) {
+                @for (spec of product.specs; track spec.specKey) {
+                  <tr>
+                    <th>{{ spec.specKey }}</th>
+                    <td>{{ spec.specValue }}</td>
+                  </tr>
+                }
+              } @else {
+                <tr><th>Màn hình</th><td>6.7 inch, Super Retina XDR, OLED</td></tr>
+                <tr><th>Chipset</th><td>Apple A17 Pro</td></tr>
+                <tr><th>Bộ nhớ trong</th><td>{{ selectedVariant?.storage || '256GB' }}</td></tr>
+                <tr><th>Camera sau</th><td>48MP Chính + 12MP Ultra Wide + 12MP Telephoto</td></tr>
+                <tr><th>Pin</th><td>Thời lượng pin dùng cả ngày</td></tr>
+              }
+            </tbody>
+          </table>
+        } @else if (activeTab === 'description') {
+          <p>{{ product.description || 'Sản phẩm chính hãng tại PhoneStore, bảo hành đầy đủ và hỗ trợ trả góp 0%.' }}</p>
+        } @else if (activeTab === 'reviews') {
+          <div class="review-layout">
+            <section class="review-summary">
+              <strong>{{ reviewSummary.averageRating || '0.0' }}/5</strong>
+              <span>{{ reviewSummary.totalReviews }} đánh giá đã duyệt</span>
+              <div class="review-stars" aria-label="Điểm đánh giá trung bình">
+                @for (star of starList(reviewSummary.averageRating); track star) {
+                  <i>★</i>
+                }
+              </div>
+            </section>
+
+            <form class="review-form" (ngSubmit)="submitReview()">
+              <label>
+                Điểm đánh giá
+                <div class="rating-picker" role="radiogroup" aria-label="Chọn điểm đánh giá">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <button
+                      type="button"
+                      [class.active]="star <= reviewForm.rating"
+                      (click)="setReviewRating(star)"
+                      [attr.aria-label]="star + ' sao'"
+                    >
+                      ★
+                    </button>
+                  }
+                </div>
+              </label>
+              <label>
+                Tiêu đề
+                <input type="text" name="reviewTitle" [(ngModel)]="reviewForm.title" maxlength="120" />
+              </label>
+              <label>
+                Nội dung
+                <textarea name="reviewContent" [(ngModel)]="reviewForm.content" rows="4"></textarea>
+              </label>
+              @if (reviewMessage) {
+                <p class="review-message">{{ reviewMessage }}</p>
+              }
+              <button type="submit" [disabled]="reviewSubmitting">
+                {{ reviewSubmitting ? 'Đang gửi...' : 'Gửi đánh giá' }}
+              </button>
+            </form>
+          </div>
+
+          <div class="review-list">
+            @if (reviewSummary.reviews.length === 0) {
+              <p>Chưa có đánh giá nào cho sản phẩm này.</p>
+            } @else {
+              @for (review of reviewSummary.reviews; track review.id) {
+                <article>
+                  <header>
+                    <strong>{{ review.userName }}</strong>
+                    <span>
+                      @for (star of starList(review.rating); track star) {
+                        <i>★</i>
+                      }
+                    </span>
+                  </header>
+                  @if (review.title) {
+                    <h3>{{ review.title }}</h3>
+                  }
+                  @if (review.content) {
+                    <p>{{ review.content }}</p>
+                  }
+                  <small>{{ review.createdAt }}</small>
+                </article>
+              }
+            }
+          </div>
+        } @else {
+          <p>PhoneStore hỗ trợ tư vấn chi tiết về sản phẩm, bảo hành và chương trình trả góp.</p>
+        }
+      </div>
+    </section>
+  }
+</section>

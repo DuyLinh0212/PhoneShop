@@ -1,0 +1,241 @@
+@if (viewMode === 'admin') {
+  <section class="panel">
+    <header class="panel-header">
+      <div>
+        <p class="tag">Admin View</p>
+        <h2>Danh sách sản phẩm</h2>
+      </div>
+      <div class="admin-actions">
+        <a routerLink="/admin/products/new">+ Thêm sản phẩm</a>
+        <button type="button" (click)="loadProducts()">Tải lại</button>
+      </div>
+    </header>
+
+    @if (loading) {
+      <p class="state">Đang tải sản phẩm...</p>
+    } @else if (errorMessage) {
+      <p class="state error">{{ errorMessage }}</p>
+    } @else if (products.length === 0) {
+      <p class="state">Chưa có sản phẩm nào.</p>
+    } @else {
+      <div class="inventory-summary" aria-label="Tổng quan tồn kho">
+        <article>
+          <span>Tổng tồn</span>
+          <strong>{{ inventorySummary.total }}</strong>
+        </article>
+        <article>
+          <span>Sắp hết</span>
+          <strong>{{ inventorySummary.low }}</strong>
+        </article>
+        <article>
+          <span>Hết hàng</span>
+          <strong>{{ inventorySummary.out }}</strong>
+        </article>
+      </div>
+
+      <div class="grid admin-grid">
+        @for (product of products; track product.id) {
+          <article class="admin-card">
+            <img
+              [src]="imageSrc(product.thumbnail || 'https://placehold.co/320x220?text=Phone')"
+              [alt]="product.name"
+            />
+            <div class="card-body">
+              <h3>{{ product.name }}</h3>
+              <p class="description">{{ product.description || 'Chưa có mô tả.' }}</p>
+              <p class="price">{{ formatPrice(product.basePrice) }}</p>
+              <div class="meta">
+                <span>Lượt xem: {{ product.viewCount }}</span>
+                <span class="stock-pill" [class]="stockTone(product.totalStock)">
+                  {{ stockLabel(product.totalStock) }}
+                </span>
+                <a [routerLink]="['/admin/products', product.id, 'edit']">Sửa</a>
+                <span [class.inactive]="!product.isActive">
+                  {{ product.isActive ? 'Đang bán' : 'Ngừng bán' }}
+                </span>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+} @else {
+  <section class="home-layout">
+    <aside class="category-sidebar" aria-label="Danh mục sản phẩm">
+      <div class="category-title">
+        <span aria-hidden="true">=</span>
+        <strong>Danh mục sản phẩm</strong>
+      </div>
+
+      <div class="category-list">
+        @for (brand of brandMenu; track brand.name) {
+          <a href="#">
+            <i>{{ brand.icon }}</i>
+            <span>{{ brand.name }}</span>
+          </a>
+        }
+      </div>
+
+      <a href="#" class="view-all">Xem tất cả <span aria-hidden="true">></span></a>
+    </aside>
+
+    <div class="hero-panel">
+      <button class="slider-btn slider-prev" type="button" aria-label="Slide trước">&lt;</button>
+      <div class="hero-copy">
+        <span class="eyebrow">NEW ARRIVAL</span>
+        <h1>iPhone 15 Pro Max</h1>
+        <p>Titan mạnh mẽ. Pro vượt trội.</p>
+        <ul>
+          @for (feature of heroFeatures; track feature) {
+            <li><span aria-hidden="true">#</span>{{ feature }}</li>
+          }
+        </ul>
+        <div class="hero-actions">
+          <a href="#" class="primary-link">Mua ngay</a>
+          <a href="#" class="text-link">Xem chi tiết <span aria-hidden="true">-></span></a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <img
+          src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=760&q=85"
+          alt=""
+        />
+      </div>
+
+      <div class="slider-dots" aria-hidden="true">
+        <span class="active"></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <button class="slider-btn slider-next" type="button" aria-label="Slide tiếp theo">></button>
+    </div>
+  </section>
+
+  <section class="promo-grid" aria-label="Khuyến mãi nổi bật">
+    @for (promo of promoTiles; track promo.title; let index = $index) {
+      <article class="promo-tile" [class.installment]="index === 3">
+        <div>
+          <h2>{{ promo.title }}</h2>
+          <p>{{ promo.subtitle }}</p>
+          <a href="#">Xem ngay <span aria-hidden="true">-></span></a>
+        </div>
+
+        @if (promo.image) {
+          <img [src]="promo.image" [alt]="promo.title" />
+        } @else {
+          <strong aria-hidden="true">0%</strong>
+        }
+      </article>
+    }
+  </section>
+
+  <section class="featured-section">
+    <div class="section-heading">
+      <div class="tabs-title">
+        <h2>Sản phẩm nổi bật</h2>
+        <div class="product-tabs" aria-label="Bộ lọc sản phẩm">
+          @for (tab of productTabs; track tab; let index = $index) {
+            <button type="button" [class.active]="index === 0">{{ tab }}</button>
+          }
+        </div>
+      </div>
+      <a href="#" class="see-all">Xem tất cả <span aria-hidden="true">-></span></a>
+    </div>
+
+    <div class="product-tools" aria-label="Tìm kiếm và lọc sản phẩm">
+      <label class="inline-search">
+        <span>Tìm kiếm</span>
+        <input
+          type="search"
+          placeholder="Nhập tên máy hoặc thương hiệu"
+          [(ngModel)]="searchTerm"
+        />
+      </label>
+
+      <label class="inline-filter">
+        <span>Bộ lọc</span>
+        <select [(ngModel)]="selectedFilter">
+          <option value="all">Tất cả sản phẩm</option>
+          <option value="featured">Sản phẩm nổi bật</option>
+          <option value="sale">Đang giảm giá</option>
+          <option value="top-rated">Đánh giá cao</option>
+          <option value="in-stock">Còn hàng</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="shop-stats" aria-label="Thống kê sản phẩm">
+      <article>
+        <span>Sản phẩm phù hợp</span>
+        <strong>{{ productStats.total }}</strong>
+      </article>
+      <article>
+        <span>Đánh giá trung bình</span>
+        <strong>{{ productStats.averageRating }}/5</strong>
+      </article>
+      <article>
+        <span>Lượt đánh giá</span>
+        <strong>{{ productStats.reviews }}</strong>
+      </article>
+      <article>
+        <span>Còn hàng</span>
+        <strong>{{ productStats.inStock }}</strong>
+      </article>
+    </div>
+
+    @if (loading) {
+      <p class="state">Đang tải sản phẩm...</p>
+    } @else {
+      @if (errorMessage) {
+        <p class="state notice">Đang hiển thị sản phẩm mẫu vì chưa kết nối được API.</p>
+      }
+
+      @if (filteredHomeProducts.length === 0) {
+        <p class="state">Không tìm thấy sản phẩm phù hợp.</p>
+      } @else {
+        <div class="product-grid">
+        @for (product of filteredHomeProducts; track product.id; let index = $index) {
+          <a class="product-card" [routerLink]="['/products', product.id]">
+            <span class="discount">{{ product.dealPercent }}%</span>
+            <div class="product-media">
+              <img [src]="imageSrc(product.thumbnail)" [alt]="product.name" />
+            </div>
+            <div class="product-info">
+              <p class="brand">{{ product.brandName }}</p>
+              <h3>{{ product.name }}</h3>
+              <span class="storage">{{ product.storage }}</span>
+              <p class="sale-price">{{ formatPrice(product.basePrice) }}</p>
+              <p class="old-price">{{ formatPrice(oldPrice(product.basePrice, index)) }}</p>
+              <div class="spec-row">
+                <span>{{ product.screen }}</span>
+                <span>{{ product.storage }}</span>
+                <span>{{ product.camera }}</span>
+              </div>
+              <div class="rating">
+                <span aria-hidden="true">*</span>
+                {{ product.rating | number: '1.1-1' }}
+                <small>({{ product.reviews }})</small>
+              </div>
+            </div>
+          </a>
+        }
+        </div>
+      }
+    }
+  </section>
+
+  <section class="service-strip" aria-label="Lợi ích mua hàng">
+    @for (item of serviceHighlights; track item.title) {
+      <article>
+        <i>{{ item.icon }}</i>
+        <span>
+          <strong>{{ item.title }}</strong>
+          <small>{{ item.text }}</small>
+        </span>
+      </article>
+    }
+  </section>
+}
