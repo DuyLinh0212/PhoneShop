@@ -1,46 +1,115 @@
-# 📱 PhoneShop - Premium Smartphone E-Commerce
+# PhoneShop
 
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-F2F4F9?style=for-the-badge&logo=spring-boot)](https://spring.io/projects/spring-boot)
-[![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.io/)
-[![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?style=for-the-badge&logo=microsoft-sql-server&logoColor=white)](https://www.microsoft.com/en-us/sql-server)
+PhoneShop la ung dung ban dien thoai gom backend Spring Boot, frontend Angular va SQL Server.
 
+## Cau hinh database
 
-## 📖 Giới thiệu dự án
-**PhoneShop** là hệ thống website kinh doanh điện thoại di động trực tuyến được phát triển theo mô hình Client-Server (RESTful API). Hệ thống cung cấp không gian mua sắm chuẩn luxury cho khách hàng với các tính năng tìm kiếm, đặt hàng, thanh toán và theo dõi vận chuyển. Đồng thời cung cấp công cụ quản trị toàn diện cho Admin và nhân viên xử lý đơn hàng.
+- Server: `KIEUPHAT`
+- Port: `1433`
+- Database: `PhoneShopDB`
+- Tai khoan SQL Server: `sa`
+- Mat khau SQL Server: `123`
+- File cau hinh: `BE/src/main/resources/application.properties`
 
-Dự án thuộc Đồ án môn học Công Nghệ Java - Trường Đại học Công Thương TP.HCM (HUIT).
+Backend dang bat:
 
-## 👨‍💻 Đội ngũ phát triển (Nhóm 3)
-* **Nguyễn Duy Linh**
-* **Lê Hoàng Bảo Long**
-* **Kiều Tấn Phát**
+```properties
+spring.jpa.hibernate.ddl-auto=update
+app.bootstrap.enabled=true
+```
 
-## 🛠️ Công nghệ & Kiến trúc
-* **Frontend (`/FE`):** Angular, CSS/Bootstrap (Giao diện Responsive, tương thích Mobile/PC).
-* **Backend (`/BE`):** Java 17, Spring Boot, Spring Data JPA, RESTful API.
-* **Database:** SQL Server / MySQL (Thiết kế chuẩn hóa với 24 bảng dữ liệu).
-* **Kiến trúc:** Model-View-Controller (MVC), tách biệt FE/BE.
+Khi backend khoi dong, Hibernate tu cap nhat cac bang/cot cua entity neu database thieu. Sau do `DatabaseBootstrap` tu kiem tra va chen du lieu mau neu cac chuc nang chua co du lieu.
 
-## ✨ Tính năng nổi bật
+## Thay doi database tu dong
 
-### 🛒 Dành cho Khách hàng
-* **Mua sắm:** Tìm kiếm, lọc sản phẩm (theo hãng, giá, dung lượng), xem chi tiết cấu hình.
-* **Giỏ hàng & Đơn hàng:** Quản lý giỏ hàng, đặt hàng, tùy chọn phương thức thanh toán (COD, Online).
-* **1 Số chức năng khác:** Theo dõi trạng thái đơn hàng realtime, đánh giá & nhận xét sản phẩm, yêu cầu đổi trả.
+`DatabaseBootstrap` thuc hien cac viec sau:
 
-### 💼 Dành cho Nhân viên & Admin
-* **Quản lý Kho & Sản phẩm:** Thêm/sửa/xóa sản phẩm, quản lý các biến thể (Màu sắc, RAM, ROM), theo dõi tồn kho.
-* **Xử lý Đơn hàng:** Xác nhận đơn, cập nhật trạng thái đóng gói và giao hàng.
-* **Khuyến mãi:** Tạo mã giảm giá (Coupons), thiết lập các chiến dịch Flash Sale theo khung giờ.
-* **Thống kê:** Báo cáo doanh thu, thống kê lượt xem và sản phẩm bán chạy.
+- Tao bang nghiep vu phu neu thieu: `promotions`, `posts`, `banners`, `store_settings`, `activity_logs`.
+- Seed role: `admin`, `user`.
+- Seed tai khoan ung dung:
+  - Admin: `admin@phonestore.vn` / `123456`
+  - User: `user@phonestore.vn` / `123456`
+- Seed du lieu hien thi: danh muc, thuong hieu, san pham, bien the, hinh anh, thong so ky thuat, danh gia, don hang mau.
+- Seed du lieu quan tri: khuyen mai, bai viet, banner, cau hinh cua hang, nhat ky bootstrap.
 
-## 📂 Cấu trúc Repository (Monorepo)
+## Chuc nang da co
+
+### User
+
+- Dang ky, dang nhap, refresh token, dang xuat.
+- Xem danh sach san pham, loc/tim kiem/sap xep.
+- Xem chi tiet san pham, bien the, hinh anh, thong so, danh gia.
+- Gio hang, cap nhat so luong, xoa gio hang.
+- Checkout, xem don hang, huy don hang hop le.
+- Ho so nguoi dung va dia chi.
+
+### Admin
+
+- Dashboard thong ke doanh thu, don hang, khach hang, san pham, ton kho, danh gia.
+- Quan ly san pham: them/sua/tat san pham, upload anh, quan ly bien the/anh/thong so theo form san pham.
+- Quan ly don hang va cap nhat trang thai.
+- Cac muc sidebar da co giao dien va API du lieu:
+  - Danh muc
+  - Thuong hieu
+  - Bien the
+  - Thong so ky thuat
+  - Hinh anh
+  - Khach hang
+  - Khuyen mai
+  - Bai viet
+  - Banner
+  - Binh luan
+  - Thong ke
+  - Cau hinh
+  - Nguoi dung
+  - Vai tro va phan quyen
+  - Nhat ky hoat dong
+
+## Chay backend
+
+```powershell
+cd BE
+.\mvnw.cmd spring-boot:run
+```
+
+Backend mac dinh chay tai:
+
 ```text
-PhoneShop/
-├── BE/               # Backend Source Code (Spring Boot)
-│   ├── src/main/java # Controller, Service, Repository, Entity
-│   └── pom.xml       # Maven dependencies
-├── FE/               # Frontend Source Code (Angular)
-│   ├── src/app/      # Components, Services, Layouts
-│   └── package.json  # NPM dependencies
-└── README.md
+http://localhost:8080
+```
+
+## Chay frontend
+
+```powershell
+cd FE
+npm.cmd install
+npm.cmd start
+```
+
+Frontend mac dinh chay tai:
+
+```text
+http://localhost:4200
+```
+
+## Kiem test
+
+Backend test dung H2 rieng, khong phu thuoc SQL Server:
+
+```powershell
+cd BE
+.\mvnw.cmd test
+```
+
+Frontend build:
+
+```powershell
+cd FE
+npm.cmd run build
+```
+
+Ket qua da kiem:
+
+- `.\mvnw.cmd test`: PASS.
+- `npm.cmd run build`: PASS, con warning budget kich thuoc bundle/CSS cua Angular.
+

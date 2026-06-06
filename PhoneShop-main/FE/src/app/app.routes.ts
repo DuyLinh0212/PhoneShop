@@ -8,6 +8,7 @@ import { LoginPageComponent } from './features/auth/pages/login-page/login-page.
 import { RegisterPageComponent } from './features/auth/pages/register-page/register-page.component';
 import { CartPageComponent } from './features/cart/pages/cart-page/cart-page.component';
 import { AdminDashboardComponent } from './features/admin/pages/admin-dashboard/admin-dashboard.component';
+import { AdminCatalogPageComponent } from './features/admin/pages/admin-catalog-page/admin-catalog-page.component';
 import { AdminOrdersPageComponent } from './features/admin/pages/admin-orders-page/admin-orders-page.component';
 import { ProductFormPageComponent } from './features/admin/pages/product-form-page/product-form-page.component';
 import { ProductDetailPageComponent } from './features/product/pages/product-detail-page/product-detail-page.component';
@@ -36,6 +37,7 @@ export const routes: Routes = [
       { path: 'products/:id/edit', component: ProductFormPageComponent },
       { path: 'products', component: ProductListPageComponent, data: { viewMode: 'admin' } },
       { path: 'orders', component: AdminOrdersPageComponent },
+      { path: 'catalog/:resource', component: AdminCatalogPageComponent },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
     ]
   },

@@ -1,0 +1,127 @@
+<section class="catalog-page">
+  <header class="page-head">
+    <div>
+      <p>Quan tri du lieu</p>
+      <h1>{{ data?.title || 'Dang tai...' }}</h1>
+      <span>{{ data?.description || 'Dong bo du lieu tu backend.' }}</span>
+    </div>
+    <button type="button" (click)="loadResource()" [disabled]="loading">Tai lai</button>
+  </header>
+
+  @if (data) {
+    <div class="stat-row">
+      <div class="stat">
+        <span>Tong ban ghi</span>
+        <strong>{{ data.stats['total'] || 0 }}</strong>
+      </div>
+      @if (data.stats['active'] !== undefined) {
+        <div class="stat good">
+          <span>Dang bat</span>
+          <strong>{{ data.stats['active'] }}</strong>
+        </div>
+        <div class="stat muted">
+          <span>Dang tat</span>
+          <strong>{{ data.stats['inactive'] }}</strong>
+        </div>
+      }
+    </div>
+  }
+
+  @if (errorMessage) {
+    <p class="alert error">{{ errorMessage }}</p>
+  }
+  @if (successMessage) {
+    <p class="alert success">{{ successMessage }}</p>
+  }
+
+  <div class="work-grid">
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>Du lieu hien co</h2>
+        @if (loading) {
+          <span>Dang tai...</span>
+        }
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              @for (column of visibleColumns; track column.key) {
+                <th>{{ column.label }}</th>
+              }
+              <th>Thao tac</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data?.rows || []; track row['id']) {
+              <tr>
+                @for (column of visibleColumns; track column.key) {
+                  <td [class.long-cell]="column.type === 'textarea' || column.key.includes('url')">
+                    {{ formatCell(row[column.key], column) }}
+                  </td>
+                }
+                <td class="actions">
+                  <button type="button" (click)="editRow(row)">Sua</button>
+                  <button type="button" class="danger" (click)="deleteRow(row)">Tat</button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td class="empty" [attr.colspan]="visibleColumns.length + 1">Chua co du lieu.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="panel editor-panel">
+      <div class="panel-head">
+        <h2>{{ selectedRow ? 'Cap nhat ban ghi' : 'Them ban ghi' }}</h2>
+        @if (selectedRow) {
+          <button type="button" class="ghost" (click)="resetForm()">Tao moi</button>
+        }
+      </div>
+
+      <form (ngSubmit)="save()">
+        @for (column of editableColumns; track column.key) {
+          <label>
+            <span>{{ column.label }}</span>
+
+            @if (column.type === 'textarea') {
+              <textarea
+                rows="4"
+                [(ngModel)]="formValue[column.key]"
+                [name]="column.key"
+                [required]="column.required"
+              ></textarea>
+            } @else if (column.type === 'boolean') {
+              <input
+                class="check"
+                type="checkbox"
+                [(ngModel)]="formValue[column.key]"
+                [name]="column.key"
+              />
+            } @else {
+              <input
+                [type]="column.type === 'number' ? 'number' : 'text'"
+                [(ngModel)]="formValue[column.key]"
+                [name]="column.key"
+                [required]="column.required"
+              />
+            }
+          </label>
+        }
+
+        @if (!editableColumns.length) {
+          <p class="readonly-note">Chuc nang nay chi cho phep xem du lieu.</p>
+        }
+
+        <button type="submit" class="save-btn" [disabled]="saving || !editableColumns.length">
+          {{ saving ? 'Dang luu...' : selectedRow ? 'Luu thay doi' : 'Them moi' }}
+        </button>
+      </form>
+    </aside>
+  </div>
+</section>
