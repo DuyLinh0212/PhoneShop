@@ -23,6 +23,7 @@ import com.example.webbanphone.repositories.ProductImageRepository;
 import com.example.webbanphone.repositories.ProductRepository;
 import com.example.webbanphone.repositories.ProductSpecRepository;
 import com.example.webbanphone.repositories.ProductVariantRepository;
+import com.example.webbanphone.repositories.ReviewRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -38,12 +40,15 @@ import java.util.Set;
 @Service
 public class ProductService {
 
+    private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
+
     private final ProductRepository productRepository;
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
     private final ProductVariantRepository variantRepository;
     private final ProductImageRepository imageRepository;
     private final ProductSpecRepository specRepository;
+    private final ReviewRepository reviewRepository;
 
     public ProductService(
             ProductRepository productRepository,
@@ -51,7 +56,8 @@ public class ProductService {
             CategoryRepository categoryRepository,
             ProductVariantRepository variantRepository,
             ProductImageRepository imageRepository,
-            ProductSpecRepository specRepository
+            ProductSpecRepository specRepository,
+            ReviewRepository reviewRepository
     ) {
         this.productRepository = productRepository;
         this.brandRepository = brandRepository;
@@ -59,6 +65,7 @@ public class ProductService {
         this.variantRepository = variantRepository;
         this.imageRepository = imageRepository;
         this.specRepository = specRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     public List<ProductResponse> getAllProducts() {
@@ -194,6 +201,15 @@ public class ProductService {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Each variant requires a valid price");
                 }
 
+                if (variant.costPrice() != null && variant.costPrice().compareTo(BigDecimal.ZERO) < 0) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Variant cost price must be greater than or equal to 0");
+                }
+
+                BigDecimal discountPercent = normalizeDiscountPercent(variant.discountPercent());
+                if (discountPercent.compareTo(BigDecimal.ZERO) < 0 || discountPercent.compareTo(ONE_HUNDRED) > 0) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Variant discount percent must be between 0 and 100");
+                }
+
                 if (variant.stock() != null && variant.stock() < 0) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Variant stock must be greater than or equal to 0");
                 }
@@ -238,7 +254,7 @@ public class ProductService {
             return request.variants()
                     .stream()
                     .filter(variant -> variant.price() != null)
-                    .map(variant -> variant.salePrice() != null ? variant.salePrice() : variant.price())
+                    .map(this::effectiveVariantPrice)
                     .findFirst()
                     .orElse(BigDecimal.ZERO);
         }
@@ -274,7 +290,9 @@ public class ProductService {
         variant.setStorage(trimToNull(request.storage()));
         variant.setRam(trimToNull(request.ram()));
         variant.setPrice(request.price());
-        variant.setSalePrice(request.salePrice());
+        variant.setCostPrice(request.costPrice());
+        variant.setDiscountPercent(resolveDiscountPercent(request));
+        variant.setSalePrice(resolveSalePrice(request));
         variant.setStock(request.stock() == null ? 0 : request.stock());
         variant.setSku(trimToNull(request.sku()));
         variant.setIsActive(request.isActive() == null || request.isActive());
@@ -291,6 +309,7 @@ public class ProductService {
         image.setImageUrl(request.imageUrl().trim());
         image.setAltText(trimToNull(request.altText()));
         image.setSortOrder(request.sortOrder() == null ? 0 : request.sortOrder());
+        image.setIsMain(request.isMain() == null ? image.getSortOrder() == 0 : request.isMain());
         imageRepository.save(image);
     }
 
@@ -313,6 +332,9 @@ public class ProductService {
     }
 
     private ProductResponse toResponse(Product product) {
+        List<ProductVariant> variants = variantRepository.findByProductIdOrderByIdAsc(product.getId());
+        ProductPricing pricing = pricingFor(product, variants);
+        ProductRating rating = ratingFor(product.getId());
         return new ProductResponse(
                 product.getId(),
                 product.getBrandId(),
@@ -320,19 +342,26 @@ public class ProductService {
                 product.getName(),
                 product.getSlug(),
                 product.getDescription(),
-                product.getBasePrice(),
+                pricing.basePrice(),
+                pricing.originalPrice(),
+                pricing.salePrice(),
+                pricing.discountPercent(),
                 product.getThumbnail(),
                 product.getIsActive(),
                 product.getIsFeatured(),
                 product.getViewCount(),
-                variantRepository.findByProductIdOrderByIdAsc(product.getId())
-                        .stream()
+                variants.stream()
                         .mapToInt(variant -> variant.getStock() == null ? 0 : variant.getStock())
-                        .sum()
+                        .sum(),
+                rating.averageRating(),
+                rating.reviewCount()
         );
     }
 
     private ProductDetailResponse toDetailResponse(Product product) {
+        List<ProductVariant> variants = variantRepository.findByProductIdOrderByIdAsc(product.getId());
+        ProductPricing pricing = pricingFor(product, variants);
+        ProductRating rating = ratingFor(product.getId());
         return new ProductDetailResponse(
                 product.getId(),
                 product.getBrandId(),
@@ -340,13 +369,17 @@ public class ProductService {
                 product.getName(),
                 product.getSlug(),
                 product.getDescription(),
-                product.getBasePrice(),
+                pricing.basePrice(),
+                pricing.originalPrice(),
+                pricing.salePrice(),
+                pricing.discountPercent(),
                 product.getThumbnail(),
                 product.getIsActive(),
                 product.getIsFeatured(),
                 product.getViewCount(),
-                variantRepository.findByProductIdOrderByIdAsc(product.getId())
-                        .stream()
+                rating.averageRating(),
+                rating.reviewCount(),
+                variants.stream()
                         .map(this::toVariantResponse)
                         .toList(),
                 imageRepository.findByProductIdOrderBySortOrderAscIdAsc(product.getId())
@@ -361,13 +394,20 @@ public class ProductService {
     }
 
     private ProductVariantResponse toVariantResponse(ProductVariant variant) {
+        BigDecimal salePrice = effectiveSalePrice(
+                variant.getPrice(),
+                variant.getSalePrice(),
+                variant.getDiscountPercent()
+        );
         return new ProductVariantResponse(
                 variant.getId(),
                 variant.getColor(),
                 variant.getStorage(),
                 variant.getRam(),
                 variant.getPrice(),
-                variant.getSalePrice(),
+                salePrice,
+                variant.getCostPrice(),
+                effectiveDiscountPercent(variant.getPrice(), salePrice, variant.getDiscountPercent()),
                 variant.getStock(),
                 variant.getSku(),
                 variant.getIsActive()
@@ -379,7 +419,8 @@ public class ProductService {
                 image.getId(),
                 image.getImageUrl(),
                 image.getAltText(),
-                image.getSortOrder()
+                image.getSortOrder(),
+                image.getIsMain()
         );
     }
 
@@ -432,5 +473,122 @@ public class ProductService {
 
     private String normalizeSku(String value) {
         return isBlank(value) ? null : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private BigDecimal effectiveVariantPrice(ProductVariantRequest variant) {
+        BigDecimal salePrice = resolveSalePrice(variant);
+        return salePrice == null ? variant.price() : salePrice;
+    }
+
+    private BigDecimal resolveSalePrice(ProductVariantRequest request) {
+        BigDecimal price = request.price();
+        if (price == null) {
+            return null;
+        }
+
+        BigDecimal discountPercent = normalizeDiscountPercent(request.discountPercent());
+        if (discountPercent.compareTo(BigDecimal.ZERO) > 0) {
+            return applyDiscount(price, discountPercent);
+        }
+
+        BigDecimal salePrice = request.salePrice();
+        if (salePrice != null && salePrice.compareTo(BigDecimal.ZERO) >= 0 && salePrice.compareTo(price) < 0) {
+            return salePrice.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return null;
+    }
+
+    private BigDecimal resolveDiscountPercent(ProductVariantRequest request) {
+        BigDecimal discountPercent = normalizeDiscountPercent(request.discountPercent());
+        if (discountPercent.compareTo(BigDecimal.ZERO) > 0) {
+            return discountPercent;
+        }
+
+        return calculateDiscountPercent(request.price(), request.salePrice());
+    }
+
+    private ProductPricing pricingFor(Product product, List<ProductVariant> variants) {
+        ProductVariant variant = variants.stream()
+                .filter(item -> !Boolean.FALSE.equals(item.getIsActive()))
+                .findFirst()
+                .orElse(null);
+        if (variant == null) {
+            BigDecimal basePrice = product.getBasePrice() == null ? BigDecimal.ZERO : product.getBasePrice();
+            return new ProductPricing(basePrice, basePrice, null, BigDecimal.ZERO);
+        }
+
+        BigDecimal originalPrice = variant.getPrice() == null ? BigDecimal.ZERO : variant.getPrice();
+        BigDecimal salePrice = effectiveSalePrice(originalPrice, variant.getSalePrice(), variant.getDiscountPercent());
+        BigDecimal discountPercent = effectiveDiscountPercent(originalPrice, salePrice, variant.getDiscountPercent());
+        BigDecimal basePrice = salePrice == null ? originalPrice : salePrice;
+
+        return new ProductPricing(basePrice, originalPrice, salePrice, discountPercent);
+    }
+
+    private BigDecimal effectiveSalePrice(BigDecimal price, BigDecimal salePrice, BigDecimal discountPercent) {
+        if (price == null) {
+            return null;
+        }
+
+        BigDecimal normalizedDiscount = normalizeDiscountPercent(discountPercent);
+        if (normalizedDiscount.compareTo(BigDecimal.ZERO) > 0) {
+            return applyDiscount(price, normalizedDiscount);
+        }
+
+        if (salePrice != null && salePrice.compareTo(BigDecimal.ZERO) >= 0 && salePrice.compareTo(price) < 0) {
+            return salePrice.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return null;
+    }
+
+    private BigDecimal effectiveDiscountPercent(BigDecimal price, BigDecimal salePrice, BigDecimal discountPercent) {
+        BigDecimal normalizedDiscount = normalizeDiscountPercent(discountPercent);
+        if (normalizedDiscount.compareTo(BigDecimal.ZERO) > 0) {
+            return normalizedDiscount;
+        }
+
+        return calculateDiscountPercent(price, salePrice);
+    }
+
+    private BigDecimal calculateDiscountPercent(BigDecimal price, BigDecimal salePrice) {
+        if (price == null || salePrice == null || price.compareTo(BigDecimal.ZERO) <= 0 || salePrice.compareTo(price) >= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return price.subtract(salePrice)
+                .multiply(ONE_HUNDRED)
+                .divide(price, 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal applyDiscount(BigDecimal price, BigDecimal discountPercent) {
+        return price.multiply(ONE_HUNDRED.subtract(discountPercent))
+                .divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal normalizeDiscountPercent(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private ProductRating ratingFor(Integer productId) {
+        long reviewCount = reviewRepository.countByProductIdAndIsApprovedTrue(productId);
+        if (reviewCount == 0) {
+            return new ProductRating(0, 0);
+        }
+
+        double averageRating = reviewRepository.averageRatingByProductId(productId);
+        return new ProductRating(Math.round(averageRating * 10.0) / 10.0, reviewCount);
+    }
+
+    private record ProductPricing(
+            BigDecimal basePrice,
+            BigDecimal originalPrice,
+            BigDecimal salePrice,
+            BigDecimal discountPercent
+    ) {
+    }
+
+    private record ProductRating(double averageRating, long reviewCount) {
     }
 }

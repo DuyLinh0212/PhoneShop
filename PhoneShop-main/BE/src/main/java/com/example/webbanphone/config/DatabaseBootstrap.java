@@ -2,24 +2,18 @@ package com.example.webbanphone.config;
 
 import com.example.webbanphone.entities.Brand;
 import com.example.webbanphone.entities.Category;
-import com.example.webbanphone.entities.Order;
-import com.example.webbanphone.entities.OrderItem;
 import com.example.webbanphone.entities.Product;
 import com.example.webbanphone.entities.ProductImage;
 import com.example.webbanphone.entities.ProductSpec;
 import com.example.webbanphone.entities.ProductVariant;
-import com.example.webbanphone.entities.Review;
 import com.example.webbanphone.entities.Role;
 import com.example.webbanphone.entities.User;
 import com.example.webbanphone.repositories.BrandRepository;
 import com.example.webbanphone.repositories.CategoryRepository;
-import com.example.webbanphone.repositories.OrderItemRepository;
-import com.example.webbanphone.repositories.OrderRepository;
 import com.example.webbanphone.repositories.ProductImageRepository;
 import com.example.webbanphone.repositories.ProductRepository;
 import com.example.webbanphone.repositories.ProductSpecRepository;
 import com.example.webbanphone.repositories.ProductVariantRepository;
-import com.example.webbanphone.repositories.ReviewRepository;
 import com.example.webbanphone.repositories.RoleRepository;
 import com.example.webbanphone.repositories.UserRepository;
 import org.springframework.boot.ApplicationArguments;
@@ -31,7 +25,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -47,9 +40,6 @@ public class DatabaseBootstrap implements ApplicationRunner {
     private final ProductVariantRepository variantRepository;
     private final ProductImageRepository imageRepository;
     private final ProductSpecRepository specRepository;
-    private final ReviewRepository reviewRepository;
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DatabaseBootstrap(
@@ -62,9 +52,6 @@ public class DatabaseBootstrap implements ApplicationRunner {
             ProductVariantRepository variantRepository,
             ProductImageRepository imageRepository,
             ProductSpecRepository specRepository,
-            ReviewRepository reviewRepository,
-            OrderRepository orderRepository,
-            OrderItemRepository orderItemRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.jdbcTemplate = jdbcTemplate;
@@ -76,9 +63,6 @@ public class DatabaseBootstrap implements ApplicationRunner {
         this.variantRepository = variantRepository;
         this.imageRepository = imageRepository;
         this.specRepository = specRepository;
-        this.reviewRepository = reviewRepository;
-        this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -147,6 +131,18 @@ public class DatabaseBootstrap implements ApplicationRunner {
                     created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
                 )
                 """);
+        execute("""
+                IF OBJECT_ID('wishlists', 'U') IS NULL
+                CREATE TABLE wishlists (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    product_id INT NOT NULL,
+                    added_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT uq_wishlists_user_product UNIQUE (user_id, product_id),
+                    CONSTRAINT fk_wishlists_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_wishlists_product FOREIGN KEY (product_id) REFERENCES products(id)
+                )
+                """);
         ensureOperationalColumns();
     }
 
@@ -186,6 +182,24 @@ public class DatabaseBootstrap implements ApplicationRunner {
         addColumnIfMissing("activity_logs", "target", "NVARCHAR(150) NULL");
         addColumnIfMissing("activity_logs", "detail", "NVARCHAR(500) NULL");
         addColumnIfMissing("activity_logs", "created_at", "DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()");
+
+        addColumnIfMissing("wishlists", "user_id", "INT NULL");
+        addColumnIfMissing("wishlists", "product_id", "INT NULL");
+        addColumnIfMissing("wishlists", "added_at", "DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()");
+
+        addColumnIfMissing("product_variants", "cost_price", "DECIMAL(15,2) NULL");
+        addColumnIfMissing("product_variants", "discount_percent", "DECIMAL(5,2) NOT NULL DEFAULT 0");
+        execute("""
+                IF OBJECT_ID('product_variants', 'U') IS NOT NULL
+                   AND COL_LENGTH('product_variants', 'discount_percent') IS NOT NULL
+                   AND COL_LENGTH('product_variants', 'sale_price') IS NOT NULL
+                UPDATE product_variants
+                SET discount_percent = ROUND(((price - sale_price) * 100.0) / price, 2)
+                WHERE (discount_percent IS NULL OR discount_percent = 0)
+                  AND price > 0
+                  AND sale_price IS NOT NULL
+                  AND sale_price < price
+                """);
     }
 
     private void addColumnIfMissing(String table, String column, String definition) {
@@ -240,52 +254,6 @@ public class DatabaseBootstrap implements ApplicationRunner {
             seedProductChildren(galaxy, "S24U-256-BK", "Den", BigDecimal.valueOf(24990000), 12);
             seedProductChildren(xiaomi, "MI14-256-GR", "Xanh", BigDecimal.valueOf(16990000), 20);
         }
-
-        if (reviewRepository.count() == 0 && productRepository.count() > 0) {
-            User user = userRepository.findByEmailIgnoreCase("user@phonestore.vn").orElse(null);
-            productRepository.findAll().stream().limit(2).forEach(product -> {
-                Review review = new Review();
-                review.setProductId(product.getId());
-                review.setUserId(user == null ? 1 : user.getId());
-                review.setRating(5);
-                review.setTitle("San pham tot");
-                review.setContent("May dep, giao dien muot va dung nhu mo ta.");
-                review.setIsApproved(true);
-                review.setCreatedAt(LocalDateTime.now());
-                reviewRepository.save(review);
-            });
-        }
-
-        if (orderRepository.count() == 0 && !variantRepository.findAll().isEmpty()) {
-            User user = userRepository.findByEmailIgnoreCase("user@phonestore.vn").orElse(null);
-            ProductVariant variant = variantRepository.findAll().get(0);
-            Product product = productRepository.findById(variant.getProductId()).orElse(null);
-            Order order = new Order();
-            order.setUserId(user == null ? 1 : user.getId());
-            order.setShippingName("Khach hang mau");
-            order.setShippingPhone("0900000002");
-            order.setShippingAddress("Quan 1, TP. Ho Chi Minh");
-            order.setSubtotal(variant.getPrice());
-            order.setDiscountAmount(BigDecimal.ZERO);
-            order.setShippingFee(BigDecimal.ZERO);
-            order.setTotalAmount(variant.getPrice());
-            order.setStatus("pending");
-            order.setPaymentMethod("cod");
-            order.setPaymentStatus("unpaid");
-            order.setNote("Don hang mau de kiem thu dashboard.");
-            order.setCreatedAt(LocalDateTime.now());
-            Order savedOrder = orderRepository.save(order);
-
-            OrderItem item = new OrderItem();
-            item.setOrderId(savedOrder.getId());
-            item.setVariantId(variant.getId());
-            item.setProductName(product == null ? "Dien thoai mau" : product.getName());
-            item.setVariantInfo(variant.getColor() + " / " + variant.getStorage());
-            item.setUnitPrice(variant.getPrice());
-            item.setQuantity(1);
-            item.setSubtotal(variant.getPrice());
-            orderItemRepository.save(item);
-        }
     }
 
     private void seedProductChildren(Product product, String sku, String color, BigDecimal price, int stock) {
@@ -295,7 +263,9 @@ public class DatabaseBootstrap implements ApplicationRunner {
         variant.setStorage("256GB");
         variant.setRam("8GB");
         variant.setPrice(price);
-        variant.setSalePrice(price.subtract(BigDecimal.valueOf(1000000)));
+        variant.setCostPrice(price.subtract(BigDecimal.valueOf(3000000)));
+        variant.setDiscountPercent(BigDecimal.valueOf(5));
+        variant.setSalePrice(price.multiply(BigDecimal.valueOf(95)).divide(BigDecimal.valueOf(100)));
         variant.setStock(stock);
         variant.setSku(sku);
         variant.setIsActive(true);
@@ -306,6 +276,7 @@ public class DatabaseBootstrap implements ApplicationRunner {
         image.setImageUrl(product.getThumbnail());
         image.setAltText(product.getName());
         image.setSortOrder(1);
+        image.setIsMain(true);
         imageRepository.save(image);
 
         ProductSpec screen = new ProductSpec();

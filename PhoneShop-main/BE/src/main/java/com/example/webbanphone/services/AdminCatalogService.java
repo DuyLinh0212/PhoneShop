@@ -28,12 +28,18 @@ public class AdminCatalogService {
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final AdminActivityLogService activityLogService;
     private final Map<String, ResourceDefinition> resources;
 
-    public AdminCatalogService(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+    public AdminCatalogService(
+            JdbcTemplate jdbcTemplate,
+            PasswordEncoder passwordEncoder,
+            AdminActivityLogService activityLogService
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.passwordEncoder = passwordEncoder;
+        this.activityLogService = activityLogService;
         this.resources = buildResources();
     }
 
@@ -67,7 +73,7 @@ public class AdminCatalogService {
     public Map<String, Object> create(String key, Map<String, Object> payload) {
         ResourceDefinition resource = resource(key);
         if (!resource.allowCreate()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resource does not support create");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chức năng này không hỗ trợ tạo mới");
         }
 
         Map<String, Object> values = writableValues(resource, payload, false);
@@ -89,7 +95,7 @@ public class AdminCatalogService {
                 "INSERT INTO " + resource.table() + " (" + columns + ") VALUES (" + params + ")",
                 new MapSqlParameterSource(values)
         );
-        writeLog("create", resource.key(), values.toString());
+        writeLog("Tạo mới", resource.key(), values.toString());
         return latestRow(resource);
     }
 
@@ -98,7 +104,7 @@ public class AdminCatalogService {
         ResourceDefinition resource = resource(key);
         Map<String, Object> values = writableValues(resource, payload, true);
         if (values.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No editable fields were provided");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chưa có trường dữ liệu nào được phép chỉnh sửa");
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource(values).addValue("id", id);
@@ -110,9 +116,9 @@ public class AdminCatalogService {
                 params
         );
         if (updated == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bản ghi");
         }
-        writeLog("update", resource.key() + "#" + id, values.toString());
+        writeLog("Cập nhật", resource.key() + "#" + id, values.toString());
         return rowById(resource, id);
     }
 
@@ -129,15 +135,15 @@ public class AdminCatalogService {
             updated = jdbcTemplate.update("DELETE FROM " + resource.table() + " WHERE id = ?", id);
         }
         if (updated == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bản ghi");
         }
-        writeLog("delete", resource.key() + "#" + id, resource.activeColumn() == null ? "deleted" : "deactivated");
+        writeLog("Xóa", resource.key() + "#" + id, resource.activeColumn() == null ? "Đã xóa" : "Đã tắt");
     }
 
     private ResourceDefinition resource(String key) {
         ResourceDefinition resource = resources.get(key == null ? "" : key.trim().toLowerCase(Locale.ROOT));
         if (resource == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin resource not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dữ liệu quản trị");
         }
         return resource;
     }
@@ -166,7 +172,7 @@ public class AdminCatalogService {
     private void validateRequired(ResourceDefinition resource, Map<String, Object> values) {
         for (ColumnMeta column : resource.columns()) {
             if (column.required() && column.editable() && blank(values.get(column.key()))) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, column.label() + " is required");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, column.label() + " là bắt buộc");
             }
         }
     }
@@ -184,7 +190,7 @@ public class AdminCatalogService {
                 id
         );
         if (rows.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bản ghi");
         }
         return rows.get(0);
     }
@@ -198,17 +204,7 @@ public class AdminCatalogService {
     }
 
     private void writeLog(String action, String target, String detail) {
-        try {
-            jdbcTemplate.update(
-                    "INSERT INTO activity_logs (actor, action, target, detail) VALUES (?, ?, ?, ?)",
-                    "admin-api",
-                    action,
-                    target,
-                    detail
-            );
-        } catch (RuntimeException ignored) {
-            // Logging must never break the business action.
-        }
+        activityLogService.writeAsync(action, target, detail);
     }
 
     private Object convertValue(Object value, String type) {
@@ -260,112 +256,114 @@ public class AdminCatalogService {
 
     private Map<String, ResourceDefinition> buildResources() {
         List<ResourceDefinition> definitions = new ArrayList<>();
-        definitions.add(resource("categories", "Danh muc", "Nhom san pham hien tren website", "categories", "is_active", true,
+        definitions.add(resource("categories", "Danh mục", "Nhóm sản phẩm hiển thị trên website", "categories", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("parent_id", "Danh muc cha", "number", true, false),
-                col("name", "Ten danh muc", "text", true, true),
+                col("parent_id", "Danh mục cha", "number", true, false),
+                col("name", "Tên danh mục", "text", true, true),
                 col("slug", "Slug", "text", true, true),
-                col("description", "Mo ta", "textarea", true, false),
-                col("is_active", "Dang hien thi", "boolean", true, false)));
-        definitions.add(resource("brands", "Thuong hieu", "Quan ly hang san xuat", "brands", "is_active", true,
+                col("description", "Mô tả", "textarea", true, false),
+                col("is_active", "Đang hiển thị", "boolean", true, false)));
+        definitions.add(resource("brands", "Thương hiệu", "Quản lý hãng sản xuất", "brands", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("name", "Ten thuong hieu", "text", true, true),
+                col("name", "Tên thương hiệu", "text", true, true),
                 col("logo", "Logo", "text", true, false),
-                col("is_active", "Dang hien thi", "boolean", true, false)));
-        definitions.add(resource("variants", "Bien the", "Mau sac, RAM, ROM, gia va ton kho", "product_variants", "is_active", true,
+                col("is_active", "Đang hiển thị", "boolean", true, false)));
+        definitions.add(resource("variants", "Biến thể", "Màu sắc, RAM, ROM, giá và tồn kho", "product_variants", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("product_id", "Ma san pham", "number", true, true),
-                col("color", "Mau", "text", true, false),
-                col("storage", "Dung luong", "text", true, false),
+                col("product_id", "Mã sản phẩm", "number", true, true),
+                col("color", "Màu", "text", true, false),
+                col("storage", "Dung lượng", "text", true, false),
                 col("ram", "RAM", "text", true, false),
-                col("price", "Gia", "number", true, true),
-                col("sale_price", "Gia giam", "number", true, false),
-                col("stock", "Ton kho", "number", true, false),
+                col("price", "Giá bán", "number", true, true),
+                col("discount_percent", "Khuyến mãi (%)", "number", true, false),
+                col("sale_price", "Giá sau giảm", "number", false, false),
+                col("cost_price", "Giá nhập", "number", true, false),
+                col("stock", "Tồn kho", "number", true, false),
                 col("sku", "SKU", "text", true, false),
-                col("is_active", "Dang ban", "boolean", true, false)));
-        definitions.add(resource("specs", "Thong so ky thuat", "Cau hinh chi tiet cua san pham", "product_specs", null, true,
+                col("is_active", "Đang bán", "boolean", true, false)));
+        definitions.add(resource("specs", "Thông số kỹ thuật", "Cấu hình chi tiết của sản phẩm", "product_specs", null, true,
                 col("id", "ID", "number", false, false),
-                col("product_id", "Ma san pham", "number", true, true),
-                col("spec_key", "Thong so", "text", true, true),
-                col("spec_value", "Gia tri", "text", true, true),
-                col("sort_order", "Sap xep", "number", true, false)));
-        definitions.add(resource("images", "Hinh anh", "Anh san pham va thu tu hien thi", "product_images", null, true,
+                col("product_id", "Mã sản phẩm", "number", true, true),
+                col("spec_key", "Thông số", "text", true, true),
+                col("spec_value", "Giá trị", "text", true, true),
+                col("sort_order", "Sắp xếp", "number", true, false)));
+        definitions.add(resource("images", "Hình ảnh", "Ảnh sản phẩm và thứ tự hiển thị", "product_images", null, true,
                 col("id", "ID", "number", false, false),
-                col("product_id", "Ma san pham", "number", true, true),
-                col("variant_id", "Ma bien the", "number", true, false),
-                col("image_url", "URL anh", "text", true, true),
-                col("alt_text", "Mo ta anh", "text", true, false),
-                col("sort_order", "Sap xep", "number", true, false)));
-        definitions.add(resource("customers", "Khach hang", "Tai khoan khach su dung website", "users", "is_active", true,
+                col("product_id", "Mã sản phẩm", "number", true, true),
+                col("variant_id", "Mã biến thể", "number", true, false),
+                col("image_url", "URL ảnh", "text", true, true),
+                col("alt_text", "Mô tả ảnh", "text", true, false),
+                col("sort_order", "Sắp xếp", "number", true, false)));
+        definitions.add(resource("customers", "Khách hàng", "Tài khoản khách sử dụng website", "users", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("role_id", "Ma vai tro", "number", false, false),
-                col("full_name", "Ho ten", "text", true, true),
+                col("role_id", "Mã vai trò", "number", false, false),
+                col("full_name", "Họ tên", "text", true, true),
                 col("email", "Email", "text", true, true),
-                col("phone", "Dien thoai", "text", true, false),
+                col("phone", "Điện thoại", "text", true, false),
                 col("avatar", "Avatar", "text", true, false),
-                col("is_active", "Dang hoat dong", "boolean", true, false)));
-        definitions.add(resource("promotions", "Khuyen mai", "Ma giam gia va chien dich uu dai", "promotions", "is_active", true,
+                col("is_active", "Đang hoạt động", "boolean", true, false)));
+        definitions.add(resource("promotions", "Khuyến mãi", "Mã giảm giá và chiến dịch ưu đãi", "promotions", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("code", "Ma", "text", true, true),
-                col("name", "Ten khuyen mai", "text", true, true),
-                col("discount_percent", "Phan tram giam", "number", true, true),
-                col("start_at", "Bat dau", "datetime", true, false),
-                col("end_at", "Ket thuc", "datetime", true, false),
-                col("is_active", "Dang chay", "boolean", true, false)));
-        definitions.add(resource("posts", "Bai viet", "Noi dung tin tuc va tu van", "posts", "is_published", true,
+                col("code", "Mã", "text", true, true),
+                col("name", "Tên khuyến mãi", "text", true, true),
+                col("discount_percent", "Phần trăm giảm", "number", true, true),
+                col("start_at", "Bắt đầu", "datetime", true, false),
+                col("end_at", "Kết thúc", "datetime", true, false),
+                col("is_active", "Đang chạy", "boolean", true, false)));
+        definitions.add(resource("posts", "Bài viết", "Nội dung tin tức và tư vấn", "posts", "is_published", true,
                 col("id", "ID", "number", false, false),
-                col("author_id", "Tac gia", "number", true, false),
-                col("title", "Tieu de", "text", true, true),
+                col("author_id", "Tác giả", "number", true, false),
+                col("title", "Tiêu đề", "text", true, true),
                 col("slug", "Slug", "text", true, true),
-                col("thumbnail", "Anh dai dien", "text", true, false),
-                col("summary", "Tom tat", "textarea", true, false),
-                col("content", "Noi dung", "textarea", true, false),
-                col("status", "Trang thai", "text", true, false),
-                col("is_published", "Da xuat ban", "boolean", true, false),
-                col("published_at", "Ngay xuat ban", "datetime", true, false),
-                col("created_at", "Ngay tao", "datetime", false, false),
-                col("updated_at", "Ngay cap nhat", "datetime", false, false)));
-        definitions.add(resource("banners", "Banner", "Banner hien thi tren trang nguoi dung", "banners", "is_active", true,
+                col("thumbnail", "Ảnh đại diện", "text", true, false),
+                col("summary", "Tóm tắt", "textarea", true, false),
+                col("content", "Nội dung", "textarea", true, false),
+                col("status", "Trạng thái", "text", true, false),
+                col("is_published", "Đã xuất bản", "boolean", true, false),
+                col("published_at", "Ngày xuất bản", "datetime", true, false),
+                col("created_at", "Ngày tạo", "datetime", false, false),
+                col("updated_at", "Ngày cập nhật", "datetime", false, false)));
+        definitions.add(resource("banners", "Banner", "Banner hiển thị trên trang người dùng", "banners", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("title", "Tieu de", "text", true, true),
-                col("image_url", "URL anh", "text", true, true),
-                col("link_url", "Lien ket", "text", true, false),
-                col("position", "Vi tri", "text", true, false),
-                col("sort_order", "Sap xep", "number", true, false),
-                col("is_active", "Dang hien thi", "boolean", true, false)));
-        definitions.add(resource("reviews", "Binh luan", "Danh gia san pham cua khach", "reviews", "is_approved", false,
+                col("title", "Tiêu đề", "text", true, true),
+                col("image_url", "URL ảnh", "text", true, true),
+                col("link_url", "Liên kết", "text", true, false),
+                col("position", "Vị trí", "text", true, false),
+                col("sort_order", "Sắp xếp", "number", true, false),
+                col("is_active", "Đang hiển thị", "boolean", true, false)));
+        definitions.add(resource("reviews", "Bình luận", "Đánh giá sản phẩm của khách", "reviews", "is_approved", false,
                 col("id", "ID", "number", false, false),
-                col("product_id", "Ma san pham", "number", false, false),
-                col("user_id", "Ma khach", "number", false, false),
+                col("product_id", "Mã sản phẩm", "number", false, false),
+                col("user_id", "Mã khách", "number", false, false),
                 col("rating", "Sao", "number", false, false),
-                col("title", "Tieu de", "text", true, false),
-                col("content", "Noi dung", "textarea", true, false),
-                col("is_approved", "Da duyet", "boolean", true, false),
-                col("created_at", "Ngay tao", "datetime", false, false)));
-        definitions.add(resource("settings", "Cau hinh", "Thiet lap he thong cua cua hang", "store_settings", null, true,
+                col("title", "Tiêu đề", "text", true, false),
+                col("content", "Nội dung", "textarea", true, false),
+                col("is_approved", "Đã duyệt", "boolean", true, false),
+                col("created_at", "Ngày tạo", "datetime", false, false)));
+        definitions.add(resource("settings", "Cấu hình", "Thiết lập hệ thống của cửa hàng", "store_settings", null, true,
                 col("id", "ID", "number", false, false),
-                col("setting_key", "Khoa", "text", true, true),
-                col("setting_value", "Gia tri", "text", true, false),
-                col("note", "Ghi chu", "text", true, false)));
-        definitions.add(resource("users", "Nguoi dung", "Tai khoan admin va user", "users", "is_active", true,
+                col("setting_key", "Khóa", "text", true, true),
+                col("setting_value", "Giá trị", "text", true, false),
+                col("note", "Ghi chú", "text", true, false)));
+        definitions.add(resource("users", "Người dùng", "Tài khoản quản trị và người dùng", "users", "is_active", true,
                 col("id", "ID", "number", false, false),
-                col("role_id", "Ma vai tro", "number", true, true),
-                col("full_name", "Ho ten", "text", true, true),
+                col("role_id", "Mã vai trò", "number", true, true),
+                col("full_name", "Họ tên", "text", true, true),
                 col("email", "Email", "text", true, true),
-                col("phone", "Dien thoai", "text", true, false),
+                col("phone", "Điện thoại", "text", true, false),
                 col("avatar", "Avatar", "text", true, false),
-                col("is_active", "Dang hoat dong", "boolean", true, false)));
-        definitions.add(resource("roles", "Vai tro va phan quyen", "Nhom quyen truy cap he thong", "roles", null, true,
+                col("is_active", "Đang hoạt động", "boolean", true, false)));
+        definitions.add(resource("roles", "Vai trò và phân quyền", "Nhóm quyền truy cập hệ thống", "roles", null, true,
                 col("id", "ID", "number", false, false),
-                col("name", "Ten vai tro", "text", true, true),
-                col("description", "Mo ta", "text", true, false)));
-        definitions.add(resource("logs", "Nhat ky hoat dong", "Cac thao tac quan tri gan day", "activity_logs", null, false,
+                col("name", "Tên vai trò", "text", true, true),
+                col("description", "Mô tả", "text", true, false)));
+        definitions.add(resource("logs", "Nhật ký hoạt động", "Các thao tác quản trị gần đây", "activity_logs", null, false,
                 col("id", "ID", "number", false, false),
-                col("actor", "Nguoi thuc hien", "text", false, false),
-                col("action", "Thao tac", "text", false, false),
-                col("target", "Doi tuong", "text", false, false),
-                col("detail", "Chi tiet", "text", false, false),
-                col("created_at", "Thoi gian", "datetime", false, false)));
+                col("actor", "Người thực hiện", "text", false, false),
+                col("action", "Thao tác", "text", false, false),
+                col("target", "Đối tượng", "text", false, false),
+                col("detail", "Chi tiết", "text", false, false),
+                col("created_at", "Thời gian", "datetime", false, false)));
 
         return definitions.stream().collect(Collectors.toMap(ResourceDefinition::key, item -> item, (left, right) -> left, LinkedHashMap::new));
     }

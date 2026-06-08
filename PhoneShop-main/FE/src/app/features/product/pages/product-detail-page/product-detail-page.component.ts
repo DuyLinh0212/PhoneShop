@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { API_BASE_URL } from '../../../../core/constants/api.constants';
 import { CartService } from '../../../../core/services/cart.service';
 import { ProductDetail, ProductService, ProductVariantPayload, ReviewSummary } from '../../../../core/services/product.service';
+import { WishlistService } from '../../../../core/services/wishlist.service';
 
 @Component({
   selector: 'app-product-detail-page',
@@ -30,6 +31,8 @@ export class ProductDetailPageComponent implements OnInit {
   };
   reviewMessage = '';
   reviewSubmitting = false;
+  favorite = false;
+  favoriteLoading = false;
 
   readonly fallbackImage =
     'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=900&q=85';
@@ -52,7 +55,8 @@ export class ProductDetailPageComponent implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly productService: ProductService,
-    private readonly cartService: CartService
+    private readonly cartService: CartService,
+    private readonly wishlistService: WishlistService
   ) {}
 
   ngOnInit(): void {
@@ -69,6 +73,7 @@ export class ProductDetailPageComponent implements OnInit {
         this.selectedImage = this.gallery[0] || this.fallbackImage;
         this.loading = false;
         this.loadReviews(product.id);
+        this.loadFavoriteStatus(product.id);
       },
       error: (error) => {
         this.loading = false;
@@ -82,6 +87,13 @@ export class ProductDetailPageComponent implements OnInit {
     this.productService.getReviews(productId).subscribe({
       next: (summary) => (this.reviewSummary = summary),
       error: () => (this.reviewSummary = { averageRating: 0, totalReviews: 0, reviews: [] })
+    });
+  }
+
+  loadFavoriteStatus(productId: number): void {
+    this.wishlistService.getStatus(productId).subscribe({
+      next: (status) => (this.favorite = Boolean(status.favorite)),
+      error: () => (this.favorite = false)
     });
   }
 
@@ -104,13 +116,34 @@ export class ProductDetailPageComponent implements OnInit {
 
   get displayPrice(): number | string {
     const variant = this.selectedVariant;
-    return variant?.salePrice ?? variant?.price ?? this.product?.basePrice ?? 0;
+    if (variant) {
+      return this.variantDisplayPrice(variant);
+    }
+
+    if (this.product && this.productHasDiscount()) {
+      return this.product.salePrice ?? this.product.basePrice ?? 0;
+    }
+
+    return this.product?.basePrice ?? 0;
   }
 
   get oldPrice(): number {
     const variant = this.selectedVariant;
-    const price = Number(variant?.price ?? this.product?.basePrice ?? 0);
-    return Math.round(price * 1.05);
+    if (variant) {
+      return Number(variant.price ?? 0);
+    }
+
+    return Number(this.product?.originalPrice ?? this.product?.basePrice ?? 0);
+  }
+
+  get hasDiscount(): boolean {
+    const variant = this.selectedVariant;
+    return variant ? this.variantHasDiscount(variant) : this.productHasDiscount();
+  }
+
+  get discountPercent(): number {
+    const variant = this.selectedVariant;
+    return variant ? this.variantDiscountPercent(variant) : this.productDiscountPercent();
   }
 
   get colorOptions(): ProductVariantPayload[] {
@@ -139,9 +172,9 @@ export class ProductDetailPageComponent implements OnInit {
 
   get fallbackVariants(): ProductVariantPayload[] {
     return [
-      { color: 'Titan tự nhiên', storage: '256GB', price: 30990000, salePrice: 29490000, stock: 20 },
-      { color: 'Titan xanh', storage: '512GB', price: 36990000, salePrice: 34990000, stock: 12 },
-      { color: 'Titan đen', storage: '1TB', price: 42990000, salePrice: 39990000, stock: 8 }
+      { color: 'Titan tự nhiên', storage: '256GB', price: 30990000, salePrice: 29490000, discountPercent: 5, stock: 20 },
+      { color: 'Titan xanh', storage: '512GB', price: 36990000, salePrice: 34990000, discountPercent: 5.41, stock: 12 },
+      { color: 'Titan đen', storage: '1TB', price: 42990000, salePrice: 39990000, discountPercent: 6.98, stock: 8 }
     ];
   }
 
@@ -160,6 +193,9 @@ export class ProductDetailPageComponent implements OnInit {
     this.selectedVariantIndex = sameStorageIndex >= 0
       ? sameStorageIndex
       : variants.findIndex((variant) => this.colorKey(variant.color) === selectedColor);
+    if (this.selectedVariantIndex < 0) {
+      this.selectedVariantIndex = 0;
+    }
   }
 
   selectStorage(storage: string): void {
@@ -219,6 +255,29 @@ export class ProductDetailPageComponent implements OnInit {
     });
   }
 
+  toggleFavorite(): void {
+    if (!this.product || this.favoriteLoading) {
+      return;
+    }
+
+    this.favoriteLoading = true;
+    const request = this.favorite
+      ? this.wishlistService.removeFavorite(this.product.id)
+      : this.wishlistService.addFavorite(this.product.id);
+
+    request.subscribe({
+      next: (status) => {
+        this.favorite = Boolean(status.favorite);
+        this.favoriteLoading = false;
+        this.actionMessage = this.favorite ? 'Đã thêm vào sản phẩm yêu thích.' : 'Đã bỏ khỏi sản phẩm yêu thích.';
+      },
+      error: (error) => {
+        this.favoriteLoading = false;
+        this.actionMessage = error?.error?.message ?? 'Không thể cập nhật sản phẩm yêu thích.';
+      }
+    });
+  }
+
   submitReview(): void {
     if (!this.product) {
       return;
@@ -261,6 +320,71 @@ export class ProductDetailPageComponent implements OnInit {
     return brandId ? names[brandId] ?? 'PhoneStore' : 'PhoneStore';
   }
 
+  displayColor(color: string | undefined): string {
+    return (color || 'Màu mặc định').split('/')[0].trim();
+  }
+
+  private variantDisplayPrice(variant: ProductVariantPayload): number {
+    const price = Number(variant.price ?? 0);
+    const discountPercent = this.variantDiscountPercent(variant);
+    if (price > 0 && discountPercent > 0) {
+      return Math.round(price * (100 - discountPercent) / 100);
+    }
+
+    const salePrice = Number(variant.salePrice ?? 0);
+    return salePrice > 0 && salePrice < price ? salePrice : price;
+  }
+
+  private variantHasDiscount(variant: ProductVariantPayload): boolean {
+    const price = Number(variant.price ?? 0);
+    const salePrice = this.variantDisplayPrice(variant);
+    return price > 0 && salePrice > 0 && salePrice < price && this.variantDiscountPercent(variant) > 0;
+  }
+
+  private variantDiscountPercent(variant: ProductVariantPayload): number {
+    const explicitPercent = Number(variant.discountPercent ?? 0);
+    if (Number.isFinite(explicitPercent) && explicitPercent > 0) {
+      return explicitPercent;
+    }
+
+    const price = Number(variant.price ?? 0);
+    const salePrice = Number(variant.salePrice ?? 0);
+    if (!Number.isFinite(price) || !Number.isFinite(salePrice) || price <= 0 || salePrice <= 0 || salePrice >= price) {
+      return 0;
+    }
+
+    return Math.round(((price - salePrice) * 100 / price) * 100) / 100;
+  }
+
+  private productHasDiscount(): boolean {
+    if (!this.product) {
+      return false;
+    }
+
+    const originalPrice = Number(this.product.originalPrice ?? this.product.basePrice ?? 0);
+    const salePrice = Number(this.product.salePrice ?? this.product.basePrice ?? 0);
+    return originalPrice > 0 && salePrice > 0 && salePrice < originalPrice && this.productDiscountPercent() > 0;
+  }
+
+  private productDiscountPercent(): number {
+    if (!this.product) {
+      return 0;
+    }
+
+    const explicitPercent = Number(this.product.discountPercent ?? 0);
+    if (Number.isFinite(explicitPercent) && explicitPercent > 0) {
+      return explicitPercent;
+    }
+
+    const originalPrice = Number(this.product.originalPrice ?? this.product.basePrice ?? 0);
+    const salePrice = Number(this.product.salePrice ?? this.product.basePrice ?? 0);
+    if (originalPrice <= 0 || salePrice <= 0 || salePrice >= originalPrice) {
+      return 0;
+    }
+
+    return Math.round(((originalPrice - salePrice) * 100 / originalPrice) * 100) / 100;
+  }
+
   formatPrice(price: number | string): string {
     const numericPrice = Number(price);
     if (Number.isNaN(numericPrice)) {
@@ -283,8 +407,14 @@ export class ProductDetailPageComponent implements OnInit {
   }
 
   colorSwatch(color: string | undefined): string {
-    const normalized = this.normalizeText(color);
+    const normalized = this.normalizeText(this.displayColor(color));
     const colorMap: Array<[string, string]> = [
+      ['xanh duong', '#2563eb'],
+      ['xanh bien', '#0ea5e9'],
+      ['xanh ngoc', '#14b8a6'],
+      ['xanh la', '#16a34a'],
+      ['green', '#16a34a'],
+      ['blue', '#2563eb'],
       ['titan sa mac', '#b9a88f'],
       ['sa mac', '#b9a88f'],
       ['titan tu nhien', '#8b8172'],
@@ -293,7 +423,7 @@ export class ProductDetailPageComponent implements OnInit {
       ['trang', '#f3f4f6'],
       ['titan den', '#2b2f38'],
       ['den', '#1f2937'],
-      ['xanh', '#26395f'],
+      ['xanh', '#2563eb'],
       ['hong', '#f4b6c2'],
       ['do', '#dc2626'],
       ['vang', '#eab308'],
@@ -307,7 +437,7 @@ export class ProductDetailPageComponent implements OnInit {
   }
 
   private colorKey(color: string | undefined): string {
-    return this.normalizeText(color || 'default');
+    return this.normalizeText(this.displayColor(color));
   }
 
   private normalizeText(value: string | undefined): string {

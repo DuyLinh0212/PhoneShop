@@ -47,17 +47,19 @@
 
         <div class="price-row">
           <strong>{{ formatPrice(displayPrice) }}</strong>
-          <del>{{ formatPrice(oldPrice) }}</del>
-          <em>-5%</em>
+          @if (hasDiscount) {
+            <del>{{ formatPrice(oldPrice) }}</del>
+            <em>-{{ discountPercent | number: '1.0-0' }}%</em>
+          }
         </div>
 
         <div class="option-group">
-          <p>Màu sắc: <b>{{ selectedVariant?.color || 'Titan tự nhiên' }}</b></p>
+          <p>Màu sắc: <b>{{ displayColor(selectedVariant?.color) }}</b></p>
           <div class="color-options">
             @for (variant of colorOptions; track variant.color; let index = $index) {
               <button
                 type="button"
-                [class.active]="variant.color === selectedVariant?.color"
+                [class.active]="displayColor(variant.color) === displayColor(selectedVariant?.color)"
                 (click)="selectColor(variant.color)"
                 [attr.aria-label]="variant.color || 'Màu sản phẩm'"
                 [title]="variant.color || 'Màu sản phẩm'"
@@ -100,6 +102,15 @@
         <div class="buy-actions">
           <button type="button" class="outline" (click)="addToCart()">Thêm vào giỏ hàng</button>
           <button type="button" class="primary" (click)="buyNow()">Mua ngay</button>
+          <button
+            type="button"
+            class="favorite-toggle"
+            [class.active]="favorite"
+            [disabled]="favoriteLoading"
+            (click)="toggleFavorite()"
+          >
+            {{ favorite ? 'Đã yêu thích' : 'Yêu thích' }}
+          </button>
         </div>
       </section>
     </div>

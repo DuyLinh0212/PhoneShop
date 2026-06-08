@@ -1,156 +1,150 @@
 <section class="dashboard">
   <header class="welcome">
-    <h1>Xin chào, Admin!</h1>
-    <p>Chúc bạn một ngày làm việc hiệu quả.</p>
+    <div>
+      <p>Thống kê</p>
+      <h1>Tổng quan cửa hàng</h1>
+      <span>Dữ liệu lấy trực tiếp từ đơn hàng, sản phẩm, khách hàng và đánh giá trong hệ thống.</span>
+    </div>
+    <button type="button" class="refresh-button" (click)="loadStatistics()" [disabled]="loading">
+      {{ loading ? 'Đang tải...' : 'Tải lại' }}
+    </button>
   </header>
 
-  <section class="stat-grid" aria-label="Chỉ số tổng quan">
-    @for (item of stats; track item.label) {
-      <article class="stat-card" [class]="item.tone">
-        <i>{{ item.icon }}</i>
-        <div>
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-          <small>{{ item.change }}</small>
+  @if (loading && stats.length === 0) {
+    <p class="state">Đang tải dữ liệu thống kê...</p>
+  } @else if (errorMessage) {
+    <section class="empty-panel">
+      <strong>Không có dữ liệu thống kê</strong>
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="loadStatistics()">Thử lại</button>
+    </section>
+  } @else {
+    <section class="stat-grid" aria-label="Chỉ số tổng quan">
+      @for (item of stats; track item.label) {
+        <article class="stat-card" [class]="item.tone">
+          <i>{{ item.icon }}</i>
+          <div>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.note }}</small>
+          </div>
+        </article>
+      }
+    </section>
+
+    <section class="analytics-grid">
+      <article class="panel revenue-panel">
+        <div class="panel-head">
+          <h2>Doanh thu thực tế</h2>
+          <a routerLink="/admin/orders">Xem đơn hàng</a>
+        </div>
+        <div class="revenue-total">
+          <span>Tổng doanh thu</span>
+          <strong>{{ totalRevenueText }}</strong>
+          <small>Không tính đơn hàng đã hủy.</small>
+        </div>
+        <div class="revenue-metrics">
+          @for (item of bottomStats; track item.label) {
+            <article>
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+              <small>{{ item.note }}</small>
+            </article>
+          }
         </div>
       </article>
-    }
-  </section>
 
-  <section class="analytics-grid">
-    <article class="panel revenue-panel">
-      <div class="panel-head">
-        <h2>Doanh thu</h2>
-        <button type="button">Theo ngày</button>
-      </div>
-      <div class="legend">
-        <span><i></i>Doanh thu</span>
-        <span><i class="dash"></i>Kỳ trước</span>
-      </div>
-      <div class="line-chart" aria-label="Biểu đồ doanh thu">
-        <div class="axis">
-          <span>100M</span>
-          <span>80M</span>
-          <span>60M</span>
-          <span>40M</span>
-          <span>20M</span>
-          <span>0</span>
+      <article class="panel category-panel">
+        <div class="panel-head">
+          <h2>Doanh thu theo danh mục</h2>
         </div>
-        <svg viewBox="0 0 640 220" role="img" aria-label="Doanh thu trong thang">
-          <polyline
-            class="previous"
-            points="0,170 22,138 44,160 66,130 88,142 110,112 132,150 154,126 176,118 198,88 220,130 242,146 264,134 286,118 308,152 330,145 352,134 374,92 396,120 418,132 440,98 462,124 484,104 506,128 528,92 550,112 572,82 594,98 616,72 640,92"
-          />
-          <polyline
-            class="current"
-            points="0,150 22,96 44,126 66,110 88,82 110,118 132,88 154,78 176,40 198,78 220,92 242,84 264,104 286,72 308,96 330,124 352,106 374,68 396,96 418,82 440,52 462,94 484,72 506,58 528,84 550,48 572,22 594,42 616,74 640,36"
-          />
-        </svg>
-        <div class="x-axis">
-          <span>01/05</span>
-          <span>06/05</span>
-          <span>11/05</span>
-          <span>16/05</span>
-          <span>21/05</span>
-          <span>26/05</span>
-          <span>31/05</span>
-        </div>
-      </div>
-    </article>
-
-    <article class="panel category-panel">
-      <h2>Doanh thu theo danh mục</h2>
-      <div class="category-content">
-        <div class="donut">
-          <span>
-            <strong>3.245.690.000 đ</strong>
-            <small>Tổng doanh thu</small>
-          </span>
-        </div>
-        <div class="category-list">
-          @for (item of categories; track item.name) {
-            <div>
-              <i [style.background]="item.color"></i>
-              <span>{{ item.name }}</span>
-              <b>{{ item.percent }}</b>
-              <strong>{{ item.revenue }}</strong>
+        @if (categories.length === 0) {
+          <p class="empty-text">Chưa có doanh thu theo danh mục.</p>
+        } @else {
+          <div class="category-content">
+            <div class="donut" [style.background]="categoryGradient">
+              <span>
+                <strong>{{ totalRevenueText }}</strong>
+                <small>Tổng doanh thu</small>
+              </span>
             </div>
-          }
-        </div>
-      </div>
-      <a href="#">Xem báo cáo chi tiết -></a>
-    </article>
-  </section>
-
-  <section class="tables-grid">
-    <article class="panel table-panel">
-      <div class="panel-head">
-        <h2>Đơn hàng mới nhất</h2>
-        <a href="#">Xem tất cả</a>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Mã đơn</th>
-            <th>Khách hàng</th>
-            <th>Tổng tiền</th>
-            <th>Trạng thái</th>
-            <th>Ngày đặt</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (order of orders; track order.code) {
-            <tr>
-              <td><a href="#">{{ order.code }}</a></td>
-              <td>{{ order.customer }}</td>
-              <td>{{ order.total }}</td>
-              <td><span class="status" [class]="order.tone">{{ order.status }}</span></td>
-              <td>{{ order.date }}</td>
-              <td><button type="button" aria-label="Xem đơn hàng">o</button></td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </article>
-
-    <article class="panel table-panel">
-      <div class="panel-head">
-        <h2>Sản phẩm bán chạy</h2>
-        <a href="#">Xem tất cả</a>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Sản phẩm</th>
-            <th>Đã bán</th>
-            <th>Doanh thu</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (product of bestSellers; track product.name; let index = $index) {
-            <tr>
-              <td class="product-cell"><span>{{ index + 1 }}</span>{{ product.name }}</td>
-              <td>{{ product.sold }}</td>
-              <td>{{ product.revenue }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </article>
-  </section>
-
-  <section class="mini-grid" aria-label="Chỉ số phụ">
-    @for (item of bottomStats; track item.label) {
-      <article class="mini-card" [class]="item.tone">
-        <i>{{ item.icon }}</i>
-        <div>
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-          <small>{{ item.change }}</small>
-        </div>
-        <em></em>
+            <div class="category-list">
+              @for (item of categories; track item.name) {
+                <div>
+                  <i [style.background]="item.color"></i>
+                  <span>{{ item.name }}</span>
+                  <b>{{ item.percent }}</b>
+                  <strong>{{ item.revenue }}</strong>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </article>
-    }
-  </section>
+    </section>
+
+    <section class="tables-grid">
+      <article class="panel table-panel">
+        <div class="panel-head">
+          <h2>Đơn hàng mới nhất</h2>
+          <a routerLink="/admin/orders">Xem tất cả</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Mã đơn</th>
+              <th>Khách hàng</th>
+              <th>Tổng tiền</th>
+              <th>Trạng thái</th>
+              <th>Ngày đặt</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (orders.length === 0) {
+              <tr><td class="empty-cell" colspan="5">Chưa có đơn hàng.</td></tr>
+            } @else {
+              @for (order of orders; track order.code) {
+                <tr>
+                  <td><a routerLink="/admin/orders">{{ order.code }}</a></td>
+                  <td>{{ order.customer }}</td>
+                  <td>{{ order.total }}</td>
+                  <td><span class="status" [class]="order.tone">{{ order.status }}</span></td>
+                  <td>{{ order.date }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </article>
+
+      <article class="panel table-panel">
+        <div class="panel-head">
+          <h2>Sản phẩm bán chạy</h2>
+          <a routerLink="/admin/products">Xem sản phẩm</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Đã bán</th>
+              <th>Doanh thu</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (bestSellers.length === 0) {
+              <tr><td class="empty-cell" colspan="3">Chưa có dữ liệu bán hàng.</td></tr>
+            } @else {
+              @for (product of bestSellers; track product.name; let index = $index) {
+                <tr>
+                  <td class="product-cell"><span>{{ index + 1 }}</span>{{ product.name }}</td>
+                  <td>{{ product.sold }}</td>
+                  <td>{{ product.revenue }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </article>
+    </section>
+  }
 </section>

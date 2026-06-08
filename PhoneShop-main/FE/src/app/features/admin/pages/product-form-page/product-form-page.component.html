@@ -14,10 +14,10 @@
 
     <div class="head-actions">
       <a routerLink="/admin/products" class="btn ghost">Hủy bỏ</a>
-      <button type="button" class="btn light" [disabled]="saving" (click)="saveProduct(true)">
+      <button type="button" class="btn light" [disabled]="saving || catalogLoading" (click)="saveProduct(true)">
         Lưu & tiếp tục
       </button>
-      <button type="button" class="btn primary" [disabled]="saving" (click)="saveProduct(false)">
+      <button type="button" class="btn primary" [disabled]="saving || catalogLoading" (click)="saveProduct(false)">
         {{ saving ? 'Đang lưu...' : 'Lưu sản phẩm' }}
       </button>
     </div>
@@ -42,21 +42,18 @@
           </label>
           <label>
             <span>Thương hiệu <b>*</b></span>
-            <select [(ngModel)]="product.brand" name="brand">
-              <option>Apple</option>
-              <option>Samsung</option>
-              <option>Xiaomi</option>
-              <option>OPPO</option>
-              <option>Vivo</option>
-              <option>Realme</option>
+            <select [(ngModel)]="product.brandId" name="brandId">
+              @for (brand of brands; track brand.id) {
+                <option [ngValue]="brand.id">{{ brand.name }}</option>
+              }
             </select>
           </label>
           <label>
             <span>Danh mục <b>*</b></span>
-            <select [(ngModel)]="product.category" name="category">
-              <option>Điện thoại</option>
-              <option>Phụ kiện</option>
-              <option>Máy tính bảng</option>
+            <select [(ngModel)]="product.categoryId" name="categoryId">
+              @for (category of categories; track category.id) {
+                <option [ngValue]="category.id">{{ category.name }}</option>
+              }
             </select>
           </label>
           <label>
@@ -191,7 +188,7 @@
   <section class="variant-card">
     <div class="variant-head">
       <h2>Biến thể sản phẩm</h2>
-      <button type="button">+ Thêm biến thể</button>
+      <button type="button" (click)="openVariantDialog()">+ Thêm biến thể</button>
     </div>
     <div class="variant-table">
       <table>
@@ -201,7 +198,8 @@
             <th>Tên biến thể</th>
             <th>SKU</th>
             <th>Giá bán (đ) <b>*</b></th>
-            <th>Giá khuyến mãi (đ)</th>
+            <th>Khuyến mãi (%)</th>
+            <th>Giá sau giảm (đ)</th>
             <th>Giá nhập (đ)</th>
             <th>Tồn kho <b>*</b></th>
             <th>Hình ảnh</th>
@@ -209,7 +207,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (variant of variants; track variant.sku; let index = $index) {
+          @for (variant of variants; track $index; let index = $index) {
             <tr>
               <td>{{ index + 1 }}</td>
               <td class="variant-name">
@@ -218,18 +216,114 @@
               </td>
               <td>{{ variant.sku }}</td>
               <td><input [(ngModel)]="variant.price" name="price{{ index }}" /></td>
-              <td><input [(ngModel)]="variant.salePrice" name="salePrice{{ index }}" /></td>
-              <td><input [(ngModel)]="variant.cost" name="cost{{ index }}" /></td>
+              <td>
+                <input type="number" min="0" max="100" step="0.01" [(ngModel)]="variant.discountPercent" name="discountPercent{{ index }}" />
+              </td>
+              <td class="computed-price">{{ formatPrice(variantFinalPrice(variant)) }}</td>
+              <td><input [(ngModel)]="variant.costPrice" name="costPrice{{ index }}" /></td>
               <td><input type="number" [(ngModel)]="variant.stock" name="stock{{ index }}" /></td>
               <td><img [src]="imageSrc(variant.image)" [alt]="variant.name" /></td>
               <td class="row-actions">
-                <button type="button">Sửa</button>
-                <button type="button" class="delete">Xóa</button>
+                <button type="button" (click)="openVariantDialog(index)">Sửa</button>
+                <button type="button" class="delete" (click)="deleteVariant(index)">Xóa</button>
               </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="10" class="empty-variants">Chưa có biến thể. Bấm “Thêm biến thể” để tạo.</td>
             </tr>
           }
         </tbody>
       </table>
     </div>
   </section>
+
+  @if (variantDialogOpen) {
+    <div class="variant-dialog-backdrop" (click)="closeVariantDialog()">
+      <form class="variant-dialog" (ngSubmit)="saveVariantDialog()" (click)="$event.stopPropagation()">
+        <header>
+          <div>
+            <p>Biến thể sản phẩm</p>
+            <h2>{{ editingVariantIndex === null ? 'Thêm biến thể' : 'Sửa biến thể' }}</h2>
+          </div>
+          <button type="button" class="dialog-close" aria-label="Đóng" (click)="closeVariantDialog()">×</button>
+        </header>
+
+        @if (variantError) {
+          <p class="variant-error">{{ variantError }}</p>
+        }
+
+        <div class="variant-dialog-grid">
+          <label>
+            <span>Tên biến thể <b>*</b></span>
+            <input
+              [(ngModel)]="variantDraft.name"
+              name="variantName"
+              placeholder="Ví dụ: Đen / 256GB"
+              required
+            />
+          </label>
+
+          <label>
+            <span>SKU</span>
+            <input [(ngModel)]="variantDraft.sku" name="variantSku" placeholder="Ví dụ: IP15PM-256-BK" />
+          </label>
+
+          <label>
+            <span>Giá bán (đ) <b>*</b></span>
+            <input type="number" min="0" [(ngModel)]="variantDraft.price" name="variantPrice" required />
+          </label>
+
+          <label>
+            <span>Khuyến mãi (%)</span>
+            <input type="number" min="0" max="100" step="0.01" [(ngModel)]="variantDraft.discountPercent" name="variantDiscountPercent" />
+          </label>
+
+          <label>
+            <span>Giá bán sau giảm</span>
+            <input [value]="formatPrice(variantFinalPrice(variantDraft))" readonly />
+          </label>
+
+          <label>
+            <span>Giá nhập (đ)</span>
+            <input type="number" min="0" [(ngModel)]="variantDraft.costPrice" name="variantCost" />
+          </label>
+
+          <label>
+            <span>Tồn kho <b>*</b></span>
+            <input type="number" min="0" [(ngModel)]="variantDraft.stock" name="variantStock" required />
+          </label>
+
+          <label>
+            <span>Màu hiển thị</span>
+            <input type="color" [(ngModel)]="variantDraft.color" name="variantColor" />
+          </label>
+
+          <label>
+            <span>Hình ảnh</span>
+            <select [(ngModel)]="variantDraft.image" name="variantImage">
+              <option value="">Không chọn</option>
+              @for (image of gallery; track image; let imageIndex = $index) {
+                <option [ngValue]="image">Ảnh {{ imageIndex + 1 }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        @if (variantDraft.image) {
+          <div class="variant-preview">
+            <span>Xem trước</span>
+            <img [src]="imageSrc(variantDraft.image)" [alt]="variantDraft.name || 'Ảnh biến thể'" />
+          </div>
+        }
+
+        <footer>
+          <button type="button" class="btn ghost" (click)="closeVariantDialog()">Hủy bỏ</button>
+          <button type="submit" class="btn primary">
+            {{ editingVariantIndex === null ? 'Thêm biến thể' : 'Lưu biến thể' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  }
 </section>

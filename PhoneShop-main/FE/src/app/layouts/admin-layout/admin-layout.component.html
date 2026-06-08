@@ -1,10 +1,10 @@
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <a routerLink="/admin/dashboard" class="brand-block" aria-label="PhoneStore Admin">
+    <a routerLink="/admin/dashboard" class="brand-block" aria-label="Quản trị PhoneStore">
       <span class="brand-mark" aria-hidden="true"></span>
       <span>
         <strong>PhoneStore</strong>
-        <small>Bảng điều khiển Admin</small>
+        <small>Bảng điều khiển quản trị</small>
       </span>
     </a>
 
@@ -45,7 +45,7 @@
     <div class="admin-profile">
       <span class="avatar" aria-hidden="true">A</span>
       <span>
-        <strong>{{ user()?.fullName || 'Admin' }}</strong>
+        <strong>{{ user()?.fullName || 'Quản trị viên' }}</strong>
         <small>{{ user()?.email || 'admin@phonestore.vn' }}</small>
       </span>
       <button type="button" (click)="logout()" aria-label="Đăng xuất">...</button>
@@ -61,11 +61,6 @@
       </button>
 
       <div class="header-actions">
-        <button type="button" class="date-filter" aria-label="Khoảng thời gian">
-          <span class="calendar-icon" aria-hidden="true"></span>
-          <strong>01/05/2024 - 31/05/2024</strong>
-        </button>
-
         <button type="button" class="bell-btn" aria-label="Thông báo">
           <span class="bell-icon" aria-hidden="true"></span>
           <em>5</em>
@@ -75,12 +70,12 @@
           <button
             type="button"
             class="account-btn"
-            aria-label="Tài khoản Admin"
+            aria-label="Tài khoản quản trị"
             [attr.aria-expanded]="accountMenuOpen"
             (click)="toggleAccountMenu()"
           >
             <span class="account-avatar" aria-hidden="true">A</span>
-            <strong>Admin</strong>
+            <strong>Quản trị</strong>
             <i aria-hidden="true" [class.open]="accountMenuOpen">v</i>
           </button>
 
@@ -89,7 +84,7 @@
               <div class="dropdown-user">
                 <span class="account-avatar" aria-hidden="true">A</span>
                 <span>
-                  <strong>{{ user()?.fullName || 'Admin' }}</strong>
+                  <strong>{{ user()?.fullName || 'Quản trị viên' }}</strong>
                   <small>{{ user()?.email || 'admin@phonestore.vn' }}</small>
                 </span>
               </div>

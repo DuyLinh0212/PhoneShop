@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { API_BASE_URL } from '../../../../core/constants/api.constants';
 import { Cart, CartItem, CartService } from '../../../../core/services/cart.service';
 import { OrderService } from '../../../../core/services/order.service';
+import { ProfileService } from '../../../../core/services/profile.service';
 
 @Component({
   selector: 'app-cart-page',
@@ -29,10 +30,12 @@ export class CartPageComponent implements OnInit {
 
   constructor(
     private readonly cartService: CartService,
-    private readonly orderService: OrderService
+    private readonly orderService: OrderService,
+    private readonly profileService: ProfileService
   ) {}
 
   ngOnInit(): void {
+    this.loadDefaultAddress();
     this.loading = true;
     this.cartService.loadCart().subscribe({
       next: (cart) => {
@@ -43,6 +46,20 @@ export class CartPageComponent implements OnInit {
         this.message = 'Không thể tải giỏ hàng.';
         this.loading = false;
       }
+    });
+  }
+
+  loadDefaultAddress(): void {
+    this.profileService.getProfile().subscribe({
+      next: (profile) => {
+        const address = profile.defaultAddress;
+        this.checkout.shippingName = address?.fullName || profile.fullName || '';
+        this.checkout.shippingPhone = address?.phone || profile.phone || '';
+        this.checkout.shippingAddress = address
+          ? [address.street, address.ward, address.district, address.province].filter(Boolean).join(', ')
+          : '';
+      },
+      error: () => {}
     });
   }
 

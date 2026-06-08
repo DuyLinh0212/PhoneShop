@@ -68,7 +68,7 @@ export class AdminOrdersPageComponent implements OnInit {
       return;
     }
 
-    this.orderService.updateAdminOrderStatus(order.id, status, order.paymentStatus, 'Admin updated order status').subscribe({
+    this.orderService.updateAdminOrderStatus(order.id, status, order.paymentStatus, 'Quản trị viên cập nhật trạng thái đơn hàng').subscribe({
       next: () => {
         this.message = `Đã cập nhật đơn #DH${order.id}.`;
         this.loadOrders();

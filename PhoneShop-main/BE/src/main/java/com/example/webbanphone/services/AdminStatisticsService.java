@@ -14,6 +14,7 @@ import com.example.webbanphone.repositories.ProductRepository;
 import com.example.webbanphone.repositories.ProductVariantRepository;
 import com.example.webbanphone.repositories.ReviewRepository;
 import com.example.webbanphone.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,7 +26,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +45,7 @@ public class AdminStatisticsService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
+    private final Executor backendTaskExecutor;
 
     public AdminStatisticsService(
             OrderRepository orderRepository,
@@ -48,7 +54,8 @@ public class AdminStatisticsService {
             ProductVariantRepository variantRepository,
             CategoryRepository categoryRepository,
             UserRepository userRepository,
-            ReviewRepository reviewRepository
+            ReviewRepository reviewRepository,
+            @Qualifier("backendTaskExecutor") Executor backendTaskExecutor
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -57,16 +64,27 @@ public class AdminStatisticsService {
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
+        this.backendTaskExecutor = backendTaskExecutor;
     }
 
     public AdminStatisticsResponse getStatistics() {
-        List<Order> orders = orderRepository.findAllByOrderByIdDesc();
-        List<OrderItem> orderItems = orderItemRepository.findAll();
-        List<Product> products = productRepository.findAll();
-        List<ProductVariant> variants = variantRepository.findAll();
-        List<Review> approvedReviews = reviewRepository.findAll().stream()
+        CompletableFuture<List<Order>> ordersFuture = runAsync(orderRepository::findAllByOrderByIdDesc);
+        CompletableFuture<List<OrderItem>> orderItemsFuture = runAsync(orderItemRepository::findAll);
+        CompletableFuture<List<Product>> productsFuture = runAsync(productRepository::findAll);
+        CompletableFuture<List<ProductVariant>> variantsFuture = runAsync(variantRepository::findAll);
+        CompletableFuture<Long> totalCustomersFuture = runAsync(userRepository::count);
+        CompletableFuture<List<Category>> categoriesFuture = runAsync(categoryRepository::findAll);
+        CompletableFuture<List<Review>> approvedReviewsFuture = runAsync(() -> reviewRepository.findAll().stream()
                 .filter(review -> Boolean.TRUE.equals(review.getIsApproved()))
-                .toList();
+                .toList());
+
+        List<Order> orders = ordersFuture.join();
+        List<OrderItem> orderItems = orderItemsFuture.join();
+        List<Product> products = productsFuture.join();
+        List<ProductVariant> variants = variantsFuture.join();
+        List<Category> categories = categoriesFuture.join();
+        List<Review> approvedReviews = approvedReviewsFuture.join();
+        long totalCustomers = totalCustomersFuture.join();
 
         BigDecimal totalRevenue = orders.stream()
                 .filter(order -> !isCancelled(order.getStatus()))
@@ -80,33 +98,45 @@ public class AdminStatisticsService {
                 .mapToInt(Review::getRating)
                 .average()
                 .orElse(0);
+        Set<Integer> revenueOrderIds = orders.stream()
+                .filter(order -> !isCancelled(order.getStatus()))
+                .map(Order::getId)
+                .collect(Collectors.toSet());
+        List<OrderItem> revenueOrderItems = orderItems.stream()
+                .filter(item -> revenueOrderIds.contains(item.getOrderId()))
+                .toList();
 
         return new AdminStatisticsResponse(
                 totalRevenue,
                 orders.size(),
-                userRepository.count(),
+                totalCustomers,
                 products.size(),
                 pendingOrders,
                 outOfStockProducts,
                 approvedReviews.size(),
                 Math.round(averageRating * 10.0) / 10.0,
-                buildCategoryRevenue(orderItems, variants, products, totalRevenue),
+                buildCategoryRevenue(revenueOrderItems, variants, products, categories, totalRevenue),
                 buildRecentOrders(orders),
-                buildBestSellers(orderItems)
+                buildBestSellers(revenueOrderItems)
         );
+    }
+
+    private <T> CompletableFuture<T> runAsync(Supplier<T> task) {
+        return CompletableFuture.supplyAsync(task, backendTaskExecutor);
     }
 
     private List<AdminStatisticsResponse.CategoryRevenue> buildCategoryRevenue(
             List<OrderItem> orderItems,
             List<ProductVariant> variants,
             List<Product> products,
+            List<Category> categories,
             BigDecimal totalRevenue
     ) {
         Map<Integer, ProductVariant> variantById = variants.stream()
                 .collect(Collectors.toMap(ProductVariant::getId, Function.identity(), (left, right) -> left));
         Map<Integer, Product> productById = products.stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity(), (left, right) -> left));
-        Map<Integer, Category> categoryById = categoryRepository.findAll().stream()
+        Map<Integer, Category> categoryById = categories.stream()
                 .collect(Collectors.toMap(Category::getId, Function.identity(), (left, right) -> left));
         Map<String, BigDecimal> revenueByCategory = new HashMap<>();
 
@@ -114,7 +144,7 @@ public class AdminStatisticsService {
             ProductVariant variant = variantById.get(item.getVariantId());
             Product product = variant == null ? null : productById.get(variant.getProductId());
             Category category = product == null ? null : categoryById.get(product.getCategoryId());
-            String name = category == null ? "Khac" : category.getName();
+            String name = category == null ? "Khác" : category.getName();
             revenueByCategory.merge(name, value(item.getSubtotal()), BigDecimal::add);
         }
 

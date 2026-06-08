@@ -208,7 +208,6 @@
 }
 
 .menu-btn,
-.date-filter,
 .bell-btn,
 .account-btn {
   background: #ffffff;
@@ -239,53 +238,8 @@
   gap: 16px;
 }
 
-.date-filter {
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 18px;
-  color: #111827;
-}
-
 .account-menu {
   position: relative;
-}
-
-.date-filter strong {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.calendar-icon {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  border: 1.8px solid #344054;
-  border-radius: 4px;
-}
-
-.calendar-icon::before {
-  content: "";
-  position: absolute;
-  left: 2px;
-  right: 2px;
-  top: 4px;
-  height: 1.8px;
-  background: #344054;
-}
-
-.calendar-icon::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: -4px;
-  width: 6px;
-  height: 5px;
-  border-left: 1.8px solid #344054;
-  border-right: 1.8px solid #344054;
 }
 
 .bell-btn {
@@ -500,10 +454,6 @@
   .admin-content {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .date-filter {
-    display: none;
   }
 
   .account-btn strong {

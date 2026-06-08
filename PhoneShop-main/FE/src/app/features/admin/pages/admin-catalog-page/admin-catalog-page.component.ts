@@ -67,7 +67,7 @@ export class AdminCatalogPageComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Khong the tai du lieu quan tri.');
+        this.errorMessage = extractApiErrorMessage(error, 'Không thể tải dữ liệu quản trị.');
       }
     });
   }
@@ -105,30 +105,30 @@ export class AdminCatalogPageComponent implements OnInit, OnDestroy {
     request.subscribe({
       next: () => {
         this.saving = false;
-        this.successMessage = this.selectedRow ? 'Da cap nhat du lieu.' : 'Da them du lieu moi.';
+        this.successMessage = this.selectedRow ? 'Đã cập nhật dữ liệu.' : 'Đã thêm dữ liệu mới.';
         this.resetForm();
         this.loadResource();
       },
       error: (error) => {
         this.saving = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Khong the luu du lieu.');
+        this.errorMessage = extractApiErrorMessage(error, 'Không thể lưu dữ liệu.');
       }
     });
   }
 
   deleteRow(row: Record<string, unknown>): void {
     const id = Number(row['id']);
-    if (!id || !window.confirm('Xac nhan tat/xoa ban ghi nay?')) {
+    if (!id || !window.confirm('Xác nhận tắt/xóa bản ghi này?')) {
       return;
     }
 
     this.adminCatalogService.delete(this.resourceKey, id).subscribe({
       next: () => {
-        this.successMessage = 'Da cap nhat trang thai ban ghi.';
+        this.successMessage = 'Đã cập nhật trạng thái bản ghi.';
         this.loadResource();
       },
       error: (error) => {
-        this.errorMessage = extractApiErrorMessage(error, 'Khong the xoa ban ghi.');
+        this.errorMessage = extractApiErrorMessage(error, 'Không thể xóa bản ghi.');
       }
     });
   }
@@ -138,7 +138,7 @@ export class AdminCatalogPageComponent implements OnInit, OnDestroy {
       return '-';
     }
     if (column.type === 'boolean') {
-      return value === true || value === 1 ? 'Dang bat' : 'Dang tat';
+      return value === true || value === 1 ? 'Đang bật' : 'Đang tắt';
     }
     if (column.type === 'number') {
       return Number(value).toLocaleString('vi-VN');

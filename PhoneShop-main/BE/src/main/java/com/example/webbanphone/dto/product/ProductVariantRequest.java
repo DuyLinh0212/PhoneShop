@@ -8,6 +8,8 @@ public record ProductVariantRequest(
         String ram,
         BigDecimal price,
         BigDecimal salePrice,
+        BigDecimal costPrice,
+        BigDecimal discountPercent,
         Integer stock,
         String sku,
         Boolean isActive

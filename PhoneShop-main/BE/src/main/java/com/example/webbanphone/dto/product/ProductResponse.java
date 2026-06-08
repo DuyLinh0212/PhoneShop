@@ -10,10 +10,15 @@ public record ProductResponse(
         String slug,
         String description,
         BigDecimal basePrice,
+        BigDecimal originalPrice,
+        BigDecimal salePrice,
+        BigDecimal discountPercent,
         String thumbnail,
         Boolean isActive,
         Boolean isFeatured,
         Integer viewCount,
-        Integer totalStock
+        Integer totalStock,
+        double averageRating,
+        long reviewCount
 ) {
 }

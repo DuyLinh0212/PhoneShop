@@ -1,103 +1,206 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { AdminStatistics, AdminStatisticsService } from '../../../../core/services/admin-statistics.service';
 
+interface StatCard {
+  icon: string;
+  label: string;
+  value: string;
+  note: string;
+  tone: string;
+}
+
+interface CategoryRow {
+  name: string;
+  percent: string;
+  percentValue: number;
+  revenue: string;
+  color: string;
+}
+
+interface OrderRow {
+  code: string;
+  customer: string;
+  total: string;
+  status: string;
+  tone: string;
+  date: string;
+}
+
+interface BestSellerRow {
+  name: string;
+  sold: number;
+  revenue: string;
+}
+
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css'
 })
 export class AdminDashboardComponent implements OnInit {
-  stats = [
-    { icon: 'B', label: 'Tổng doanh thu', value: '3.245.690.000 đ', tone: 'blue', change: '+ 12.5% so với kỳ trước' },
-    { icon: 'C', label: 'Tổng đơn hàng', value: '1.248', tone: 'green', change: '+ 8.7% so với kỳ trước' },
-    { icon: 'U', label: 'Khách hàng mới', value: '856', tone: 'purple', change: '+ 15.3% so với kỳ trước' },
-    { icon: 'P', label: 'Sản phẩm', value: '50', tone: 'amber', change: 'Không đổi' },
-    { icon: 'O', label: 'Đơn hàng chờ xử lý', value: '32', tone: 'red', change: 'Xem chi tiết' }
-  ];
+  loading = false;
+  errorMessage = '';
+  totalRevenueText = this.formatPrice(0);
+  stats: StatCard[] = [];
+  categories: CategoryRow[] = [];
+  orders: OrderRow[] = [];
+  bestSellers: BestSellerRow[] = [];
+  bottomStats: StatCard[] = [];
 
-  categories = [
-    { name: 'iPhone', percent: '35.6%', revenue: '1.155.890.000 đ', color: '#1976f3' },
-    { name: 'Samsung', percent: '28.7%', revenue: '931.450.000 đ', color: '#665cf6' },
-    { name: 'Xiaomi', percent: '15.2%', revenue: '492.560.000 đ', color: '#22b573' },
-    { name: 'OPPO', percent: '8.9%', revenue: '289.100.000 đ', color: '#21a77a' },
-    { name: 'Vivo', percent: '5.6%', revenue: '181.720.000 đ', color: '#f04450' },
-    { name: 'Khác', percent: '5.0%', revenue: '162.970.000 đ', color: '#f6a75d' }
-  ];
-
-  orders = [
-    { code: '#DH10050', customer: 'Nguyễn Văn A', total: '24.990.000 đ', status: 'Chờ xác nhận', tone: 'pending', date: '31/05/2024 14:32' },
-    { code: '#DH10049', customer: 'Trần Thị B', total: '15.490.000 đ', status: 'Đang xử lý', tone: 'process', date: '31/05/2024 13:15' },
-    { code: '#DH10048', customer: 'Lê Văn C', total: '8.990.000 đ', status: 'Đã thanh toán', tone: 'paid', date: '31/05/2024 12:01' },
-    { code: '#DH10047', customer: 'Phạm Thị D', total: '29.990.000 đ', status: 'Đã giao hàng', tone: 'ship', date: '31/05/2024 10:45' },
-    { code: '#DH10046', customer: 'Hoàng Văn E', total: '11.990.000 đ', status: 'Đã hủy', tone: 'cancel', date: '30/05/2024 16:22' }
-  ];
-
-  bestSellers = [
-    { name: 'iPhone 15 Pro Max 256GB', sold: 128, revenue: '3.197.120.000 đ' },
-    { name: 'Samsung Galaxy S24 Ultra 256GB', sold: 98, revenue: '2.449.020.000 đ' },
-    { name: 'Xiaomi 14 256GB', sold: 76, revenue: '1.275.240.000 đ' },
-    { name: 'OPPO Reno11 5G 256GB', sold: 54, revenue: '538.920.000 đ' },
-    { name: 'vivo V30 5G 256GB', sold: 42, revenue: '419.580.000 đ' }
-  ];
-
-  bottomStats = [
-    { icon: 'U', label: 'Tổng khách hàng', value: '2.350', change: '+ 10.2%', tone: 'purple' },
-    { icon: 'P', label: 'Sản phẩm hết hàng', value: '3', change: '- 25.0%', tone: 'amber down' },
-    { icon: 'N', label: 'Tổng bài viết', value: '12', change: '+ 9.1%', tone: 'green' },
-    { icon: 'M', label: 'Bình luận mới', value: '8', change: '+ 14.3%', tone: 'blue' },
-    { icon: '*', label: 'Đánh giá sản phẩm', value: '4.8 / 5', change: '+ 0.3', tone: 'amber' }
-  ];
+  private readonly categoryColors = ['#2563eb', '#7c3aed', '#16a34a', '#f59e0b', '#ef4444', '#0ea5e9'];
 
   constructor(private readonly statisticsService: AdminStatisticsService) {}
 
   ngOnInit(): void {
+    this.loadStatistics();
+  }
+
+  loadStatistics(): void {
+    this.loading = true;
+    this.errorMessage = '';
+
     this.statisticsService.getStatistics().subscribe({
-      next: (statistics) => this.applyStatistics(statistics),
-      error: () => undefined
+      next: (statistics) => {
+        this.applyStatistics(statistics);
+        this.loading = false;
+      },
+      error: (error) => {
+        this.loading = false;
+        this.errorMessage = error?.error?.message ?? 'Không thể tải dữ liệu thống kê từ hệ thống.';
+        this.clearStatistics();
+      }
     });
   }
 
+  get categoryGradient(): string {
+    if (this.categories.length === 0) {
+      return '#eef2f7';
+    }
+
+    let cursor = 0;
+    const segments = this.categories.map((item) => {
+      const start = cursor;
+      cursor = Math.min(100, cursor + item.percentValue);
+      return `${item.color} ${start}% ${cursor}%`;
+    });
+
+    if (cursor < 100) {
+      segments.push(`#e5eaf2 ${cursor}% 100%`);
+    }
+
+    return `conic-gradient(${segments.join(', ')})`;
+  }
+
   private applyStatistics(statistics: AdminStatistics): void {
+    this.totalRevenueText = this.formatPrice(statistics.totalRevenue);
     this.stats = [
-      { icon: 'B', label: 'Tổng doanh thu', value: this.formatPrice(statistics.totalRevenue), tone: 'blue', change: 'Dữ liệu từ đơn hàng' },
-      { icon: 'C', label: 'Tổng đơn hàng', value: String(statistics.totalOrders), tone: 'green', change: 'Tất cả đơn hàng' },
-      { icon: 'U', label: 'Tổng khách hàng', value: String(statistics.totalCustomers), tone: 'purple', change: 'Tài khoản trong hệ thống' },
-      { icon: 'P', label: 'Sản phẩm', value: String(statistics.totalProducts), tone: 'amber', change: 'Đang quản lý' },
-      { icon: 'O', label: 'Đơn hàng chờ xử lý', value: String(statistics.pendingOrders), tone: 'red', change: 'Cần kiểm tra' }
+      {
+        icon: 'DT',
+        label: 'Tổng doanh thu',
+        value: this.totalRevenueText,
+        note: 'Từ đơn hàng không bị hủy',
+        tone: 'blue'
+      },
+      {
+        icon: 'ĐH',
+        label: 'Tổng đơn hàng',
+        value: this.formatNumber(statistics.totalOrders),
+        note: 'Tất cả đơn trong hệ thống',
+        tone: 'green'
+      },
+      {
+        icon: 'KH',
+        label: 'Khách hàng',
+        value: this.formatNumber(statistics.totalCustomers),
+        note: 'Tài khoản đã ghi nhận',
+        tone: 'purple'
+      },
+      {
+        icon: 'SP',
+        label: 'Sản phẩm',
+        value: this.formatNumber(statistics.totalProducts),
+        note: 'Sản phẩm đang quản lý',
+        tone: 'amber'
+      },
+      {
+        icon: 'CX',
+        label: 'Đơn chờ xử lý',
+        value: this.formatNumber(statistics.pendingOrders),
+        note: 'Cần kiểm tra',
+        tone: 'red'
+      }
     ];
 
-    this.categories = statistics.categoryRevenue.map((item, index) => ({
+    this.categories = (statistics.categoryRevenue ?? []).map((item, index) => ({
       name: item.name,
-      percent: `${item.percent.toFixed(1)}%`,
+      percent: `${Number(item.percent || 0).toFixed(1)}%`,
+      percentValue: Number(item.percent || 0),
       revenue: this.formatPrice(item.revenue),
-      color: ['#1976f3', '#665cf6', '#22b573', '#21a77a', '#f04450', '#f6a75d'][index % 6]
+      color: this.categoryColors[index % this.categoryColors.length]
     }));
 
-    this.orders = statistics.recentOrders.map((order) => ({
+    this.orders = (statistics.recentOrders ?? []).map((order) => ({
       code: order.code,
-      customer: order.customer,
+      customer: order.customer || 'Khách hàng',
       total: this.formatPrice(order.total),
-      status: order.status,
+      status: this.statusLabel(order.status),
       tone: this.statusTone(order.status),
-      date: order.createdAt
+      date: order.createdAt || '-'
     }));
 
-    this.bestSellers = statistics.bestSellers.map((product) => ({
+    this.bestSellers = (statistics.bestSellers ?? []).map((product) => ({
       name: product.name,
       sold: product.sold,
       revenue: this.formatPrice(product.revenue)
     }));
 
     this.bottomStats = [
-      { icon: 'U', label: 'Tổng khách hàng', value: String(statistics.totalCustomers), change: 'Đang hoạt động', tone: 'purple' },
-      { icon: 'P', label: 'Sản phẩm hết hàng', value: String(statistics.outOfStockProducts), change: 'Cần nhập kho', tone: 'amber down' },
-      { icon: 'N', label: 'Tổng đánh giá', value: String(statistics.totalReviews), change: 'Đã duyệt', tone: 'green' },
-      { icon: 'M', label: 'Đơn hàng mới', value: String(statistics.totalOrders), change: 'Theo DB hiện tại', tone: 'blue' },
-      { icon: '*', label: 'Đánh giá sản phẩm', value: `${statistics.averageRating.toFixed(1)} / 5`, change: 'Trung bình', tone: 'amber' }
+      {
+        icon: 'TK',
+        label: 'Khách hàng',
+        value: this.formatNumber(statistics.totalCustomers),
+        note: 'Tổng tài khoản',
+        tone: 'purple'
+      },
+      {
+        icon: 'HH',
+        label: 'Sản phẩm hết hàng',
+        value: this.formatNumber(statistics.outOfStockProducts),
+        note: 'Cần nhập kho',
+        tone: 'amber down'
+      },
+      {
+        icon: 'DG',
+        label: 'Tổng đánh giá',
+        value: this.formatNumber(statistics.totalReviews),
+        note: 'Đánh giá đã duyệt',
+        tone: 'green'
+      },
+      {
+        icon: 'TB',
+        label: 'Sao trung bình',
+        value: `${Number(statistics.averageRating || 0).toFixed(1)} / 5`,
+        note: 'Tính từ review thật',
+        tone: 'amber'
+      }
     ];
+  }
+
+  private clearStatistics(): void {
+    this.totalRevenueText = this.formatPrice(0);
+    this.stats = [];
+    this.categories = [];
+    this.orders = [];
+    this.bestSellers = [];
+    this.bottomStats = [];
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('vi-VN').format(Number(value || 0));
   }
 
   private formatPrice(price: number): string {
@@ -109,19 +212,49 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private statusTone(status: string): string {
-    const normalized = (status || '').toLowerCase();
-    if (normalized.includes('cancel') || normalized.includes('hủy')) {
+    const normalized = this.normalizeStatus(status);
+    if (normalized.includes('cancel') || normalized.includes('huy')) {
       return 'cancel';
     }
-    if (normalized.includes('paid') || normalized.includes('thanh')) {
+    if (normalized.includes('complete') || normalized.includes('done') || normalized.includes('hoan thanh')) {
       return 'paid';
     }
-    if (normalized.includes('ship') || normalized.includes('giao')) {
+    if (normalized.includes('ship') || normalized.includes('delivery') || normalized.includes('giao')) {
       return 'ship';
     }
-    if (normalized.includes('process') || normalized.includes('xử')) {
+    if (normalized.includes('confirm') || normalized.includes('process') || normalized.includes('xu ly')) {
       return 'process';
     }
     return 'pending';
+  }
+
+  private statusLabel(status: string): string {
+    const normalized = this.normalizeStatus(status);
+    if (normalized.includes('cancel') || normalized.includes('huy')) {
+      return 'Đã hủy';
+    }
+    if (normalized.includes('complete') || normalized.includes('done') || normalized.includes('hoan thanh')) {
+      return 'Hoàn thành';
+    }
+    if (normalized.includes('ship') || normalized.includes('delivery') || normalized.includes('giao')) {
+      return 'Đang giao';
+    }
+    if (normalized.includes('confirm') || normalized.includes('process') || normalized.includes('xu ly')) {
+      return 'Đang xử lý';
+    }
+    if (normalized.includes('pending') || normalized.includes('cho')) {
+      return 'Chờ xác nhận';
+    }
+    return status || 'Không rõ';
+  }
+
+  private normalizeStatus(value: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .trim()
+      .toLowerCase();
   }
 }

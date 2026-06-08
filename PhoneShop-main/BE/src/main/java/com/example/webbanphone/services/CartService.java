@@ -17,10 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
 public class CartService {
+
+    private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
     private final CartItemRepository cartItemRepository;
     private final ProductVariantRepository variantRepository;
@@ -118,7 +121,7 @@ public class CartService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product variant not found"));
         Product product = productRepository.findById(variant.getProductId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
-        BigDecimal unitPrice = variant.getSalePrice() != null ? variant.getSalePrice() : variant.getPrice();
+        BigDecimal unitPrice = effectivePrice(variant);
         BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
 
         return new CartItemResponse(
@@ -143,5 +146,24 @@ public class CartService {
             return 1;
         }
         return Math.max(1, Math.min(quantity, 99));
+    }
+
+    private BigDecimal effectivePrice(ProductVariant variant) {
+        BigDecimal price = variant.getPrice() == null ? BigDecimal.ZERO : variant.getPrice();
+        BigDecimal discountPercent = variant.getDiscountPercent() == null
+                ? BigDecimal.ZERO
+                : variant.getDiscountPercent();
+
+        if (discountPercent.compareTo(BigDecimal.ZERO) > 0) {
+            return price.multiply(ONE_HUNDRED.subtract(discountPercent))
+                    .divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal salePrice = variant.getSalePrice();
+        if (salePrice != null && salePrice.compareTo(BigDecimal.ZERO) >= 0 && salePrice.compareTo(price) < 0) {
+            return salePrice;
+        }
+
+        return price;
     }
 }

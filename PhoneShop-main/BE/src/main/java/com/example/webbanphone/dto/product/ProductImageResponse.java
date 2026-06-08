@@ -4,6 +4,7 @@ public record ProductImageResponse(
         Integer id,
         String imageUrl,
         String altText,
-        Integer sortOrder
+        Integer sortOrder,
+        Boolean isMain
 ) {
 }

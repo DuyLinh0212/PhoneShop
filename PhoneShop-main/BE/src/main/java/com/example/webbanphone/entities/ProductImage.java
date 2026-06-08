@@ -30,6 +30,9 @@ public class ProductImage {
     @Column(name = "sort_order")
     private Integer sortOrder;
 
+    @Column(name = "is_main", nullable = false)
+    private Boolean isMain = false;
+
     public Integer getId() {
         return id;
     }
@@ -76,5 +79,13 @@ public class ProductImage {
 
     public void setSortOrder(Integer sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    public Boolean getIsMain() {
+        return isMain;
+    }
+
+    public void setIsMain(Boolean main) {
+        isMain = main;
     }
 }

@@ -35,6 +35,12 @@ public class ProductVariant {
     @Column(name = "sale_price")
     private BigDecimal salePrice;
 
+    @Column(name = "cost_price")
+    private BigDecimal costPrice;
+
+    @Column(name = "discount_percent")
+    private BigDecimal discountPercent;
+
     @Column(name = "stock")
     private Integer stock;
 
@@ -98,6 +104,22 @@ public class ProductVariant {
 
     public void setSalePrice(BigDecimal salePrice) {
         this.salePrice = salePrice;
+    }
+
+    public BigDecimal getCostPrice() {
+        return costPrice;
+    }
+
+    public void setCostPrice(BigDecimal costPrice) {
+        this.costPrice = costPrice;
+    }
+
+    public BigDecimal getDiscountPercent() {
+        return discountPercent;
+    }
+
+    public void setDiscountPercent(BigDecimal discountPercent) {
+        this.discountPercent = discountPercent;
     }
 
     public Integer getStock() {

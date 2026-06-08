@@ -38,4 +38,12 @@ export class ProfileService {
   updateProfile(payload: { fullName: string; phone?: string }): Observable<Profile> {
     return this.http.put<Profile>(`${API_BASE_URL}/profile`, payload);
   }
+
+  getAddresses(): Observable<AddressSummary[]> {
+    return this.http.get<AddressSummary[]>(`${API_BASE_URL}/profile/addresses`);
+  }
+
+  saveDefaultAddress(payload: Omit<AddressSummary, 'id' | 'isDefault'>): Observable<AddressSummary> {
+    return this.http.put<AddressSummary>(`${API_BASE_URL}/profile/default-address`, payload);
+  }
 }

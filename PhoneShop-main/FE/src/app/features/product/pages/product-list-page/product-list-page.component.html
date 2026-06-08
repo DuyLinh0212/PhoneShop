@@ -2,7 +2,7 @@
   <section class="panel">
     <header class="panel-header">
       <div>
-        <p class="tag">Admin View</p>
+        <p class="tag">Giao diện quản trị</p>
         <h2>Danh sách sản phẩm</h2>
       </div>
       <div class="admin-actions">
@@ -199,7 +199,9 @@
         <div class="product-grid">
         @for (product of filteredHomeProducts; track product.id; let index = $index) {
           <a class="product-card" [routerLink]="['/products', product.id]">
-            <span class="discount">{{ product.dealPercent }}%</span>
+            @if (hasDiscount(product)) {
+              <span class="discount">-{{ discountPercent(product) }}%</span>
+            }
             <div class="product-media">
               <img [src]="imageSrc(product.thumbnail)" [alt]="product.name" />
             </div>
@@ -207,15 +209,17 @@
               <p class="brand">{{ product.brandName }}</p>
               <h3>{{ product.name }}</h3>
               <span class="storage">{{ product.storage }}</span>
-              <p class="sale-price">{{ formatPrice(product.basePrice) }}</p>
-              <p class="old-price">{{ formatPrice(oldPrice(product.basePrice, index)) }}</p>
+              <p class="sale-price">{{ formatPrice(displayPrice(product)) }}</p>
+              @if (hasDiscount(product)) {
+                <p class="old-price">{{ formatPrice(originalPrice(product)) }}</p>
+              }
               <div class="spec-row">
                 <span>{{ product.screen }}</span>
                 <span>{{ product.storage }}</span>
                 <span>{{ product.camera }}</span>
               </div>
               <div class="rating">
-                <span aria-hidden="true">*</span>
+                <span aria-hidden="true">★</span>
                 {{ product.rating | number: '1.1-1' }}
                 <small>({{ product.reviews }})</small>
               </div>

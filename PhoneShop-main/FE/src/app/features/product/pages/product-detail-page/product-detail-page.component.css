@@ -298,6 +298,7 @@
 .buy-actions {
   gap: 12px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .action-message {
@@ -308,7 +309,7 @@
 }
 
 .buy-actions button {
-  flex: 1;
+  flex: 1 1 180px;
   min-height: 48px;
   border-radius: 8px;
   font-weight: 800;
@@ -325,6 +326,23 @@
   border: 1px solid var(--primary);
   background: var(--primary);
   color: #ffffff;
+}
+
+.buy-actions .favorite-toggle {
+  flex: 0 0 160px;
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.buy-actions .favorite-toggle.active {
+  background: #e11d48;
+  color: #ffffff;
+}
+
+.buy-actions .favorite-toggle:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .quick-spec-strip {

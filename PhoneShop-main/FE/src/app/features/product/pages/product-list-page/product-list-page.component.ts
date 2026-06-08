@@ -14,7 +14,6 @@ type HomeProduct = Product & {
   camera?: string;
   rating?: number;
   reviews?: number;
-  dealPercent?: number;
 };
 
 @Component({
@@ -102,6 +101,9 @@ export class ProductListPageComponent implements OnInit {
       slug: 'iphone-15-pro-max',
       description: 'Titanium. Camera 48MP. Chip A17 Pro.',
       basePrice: 29490000,
+      originalPrice: 30990000,
+      salePrice: 29490000,
+      discountPercent: 5,
       thumbnail: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=520&q=80',
       isActive: true,
       isFeatured: true,
@@ -109,8 +111,8 @@ export class ProductListPageComponent implements OnInit {
       storage: '256GB',
       screen: '6.7"',
       camera: '48MP',
-      rating: 4.9,
-      reviews: 128
+      rating: 0,
+      reviews: 0
     },
     {
       id: 1002,
@@ -121,6 +123,9 @@ export class ProductListPageComponent implements OnInit {
       slug: 'samsung-galaxy-s24-ultra',
       description: 'Màn hình lớn, S Pen, camera 200MP.',
       basePrice: 24990000,
+      originalPrice: 27990000,
+      salePrice: 24990000,
+      discountPercent: 10.72,
       thumbnail: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=520&q=80',
       isActive: true,
       isFeatured: true,
@@ -128,8 +133,8 @@ export class ProductListPageComponent implements OnInit {
       storage: '256GB',
       screen: '6.8"',
       camera: '200MP',
-      rating: 4.8,
-      reviews: 96
+      rating: 0,
+      reviews: 0
     },
     {
       id: 1003,
@@ -147,8 +152,8 @@ export class ProductListPageComponent implements OnInit {
       storage: '256GB',
       screen: '6.36"',
       camera: '50MP',
-      rating: 4.7,
-      reviews: 74
+      rating: 0,
+      reviews: 0
     },
     {
       id: 1004,
@@ -159,6 +164,9 @@ export class ProductListPageComponent implements OnInit {
       slug: 'oppo-reno11-5g',
       description: 'Chụp chân dung nổi bật.',
       basePrice: 10990000,
+      originalPrice: 11990000,
+      salePrice: 10990000,
+      discountPercent: 8.34,
       thumbnail: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=520&q=80',
       isActive: true,
       isFeatured: true,
@@ -166,8 +174,8 @@ export class ProductListPageComponent implements OnInit {
       storage: '256GB',
       screen: '6.7"',
       camera: '50MP',
-      rating: 4.7,
-      reviews: 74
+      rating: 0,
+      reviews: 0
     },
     {
       id: 1005,
@@ -185,8 +193,8 @@ export class ProductListPageComponent implements OnInit {
       storage: '256GB',
       screen: '6.78"',
       camera: '50MP',
-      rating: 4.6,
-      reviews: 42
+      rating: 0,
+      reviews: 0
     },
     {
       id: 1006,
@@ -197,6 +205,9 @@ export class ProductListPageComponent implements OnInit {
       slug: 'realme-12-pro-plus-5g',
       description: 'Zoom tốt, pin lớn.',
       basePrice: 8990000,
+      originalPrice: 9990000,
+      salePrice: 8990000,
+      discountPercent: 10.01,
       thumbnail: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=520&q=80',
       isActive: true,
       isFeatured: true,
@@ -204,8 +215,8 @@ export class ProductListPageComponent implements OnInit {
       storage: '256GB',
       screen: '6.7"',
       camera: '64MP',
-      rating: 4.6,
-      reviews: 35
+      rating: 0,
+      reviews: 0
     }
   ];
 
@@ -249,9 +260,8 @@ export class ProductListPageComponent implements OnInit {
       storage: this.storageFor(index),
       screen: this.screenFor(index),
       camera: this.cameraFor(index),
-      rating: 4.9 - Math.min(index, 4) * 0.1,
-      reviews: product.viewCount || [128, 96, 74, 74, 42, 35][index] || 28,
-      dealPercent: this.discountFor(index),
+      rating: this.averageRating(product),
+      reviews: this.reviewCount(product),
       thumbnail: product.thumbnail || this.fallbackProducts[index % this.fallbackProducts.length].thumbnail
     }));
   }
@@ -271,7 +281,7 @@ export class ProductListPageComponent implements OnInit {
       const matchesFilter =
         this.selectedFilter === 'all' ||
         (this.selectedFilter === 'featured' && product.isFeatured) ||
-        (this.selectedFilter === 'sale' && Math.abs(product.dealPercent ?? 0) >= 7) ||
+        (this.selectedFilter === 'sale' && this.hasDiscount(product)) ||
         (this.selectedFilter === 'top-rated' && rating >= 4.7) ||
         (this.selectedFilter === 'in-stock' && stock > 0);
 
@@ -281,16 +291,29 @@ export class ProductListPageComponent implements OnInit {
 
   get productStats(): { total: number; averageRating: string; reviews: number; inStock: number } {
     const products = this.filteredHomeProducts;
-    const totalRating = products.reduce((sum, product) => sum + Number(product.rating ?? 0), 0);
     const reviews = products.reduce((sum, product) => sum + Number(product.reviews ?? 0), 0);
+    const totalRating = products.reduce(
+      (sum, product) => sum + Number(product.rating ?? 0) * Number(product.reviews ?? 0),
+      0
+    );
     const inStock = products.filter((product) => Number(product.totalStock ?? 1) > 0).length;
 
     return {
       total: products.length,
-      averageRating: products.length > 0 ? (totalRating / products.length).toFixed(1) : '0.0',
+      averageRating: reviews > 0 ? (totalRating / reviews).toFixed(1) : '0.0',
       reviews,
       inStock
     };
+  }
+
+  averageRating(product: Product): number {
+    const value = Number(product.averageRating ?? 0);
+    return Number.isFinite(value) ? Math.round(value * 10) / 10 : 0;
+  }
+
+  reviewCount(product: Product): number {
+    const value = Number(product.reviewCount ?? 0);
+    return Number.isFinite(value) ? value : 0;
   }
 
   brandName(brandId: number): string {
@@ -306,19 +329,6 @@ export class ProductListPageComponent implements OnInit {
     return names[brandId] ?? 'PhoneStore';
   }
 
-  discountFor(index: number): number {
-    return [-5, -8, -6, -7, -9, -10][index % 6];
-  }
-
-  oldPrice(price: number | string, index: number): number {
-    const numericPrice = Number(price);
-    if (Number.isNaN(numericPrice)) {
-      return 0;
-    }
-
-    return Math.round(numericPrice * (1.08 + index * 0.01));
-  }
-
   storageFor(index: number): string {
     return ['256GB', '256GB', '256GB', '256GB', '256GB', '256GB'][index % 6];
   }
@@ -329,6 +339,39 @@ export class ProductListPageComponent implements OnInit {
 
   cameraFor(index: number): string {
     return ['48MP', '200MP', '50MP', '50MP', '50MP', '64MP'][index % 6];
+  }
+
+  displayPrice(product: Product): number {
+    if (this.hasDiscount(product)) {
+      return Number(product.salePrice ?? product.basePrice);
+    }
+
+    return Number(product.basePrice ?? product.originalPrice ?? 0);
+  }
+
+  originalPrice(product: Product): number {
+    return Number(product.originalPrice ?? product.basePrice ?? 0);
+  }
+
+  discountPercent(product: Product): number {
+    const explicitPercent = Number(product.discountPercent ?? 0);
+    if (Number.isFinite(explicitPercent) && explicitPercent > 0) {
+      return Math.round(explicitPercent);
+    }
+
+    const originalPrice = this.originalPrice(product);
+    const salePrice = Number(product.salePrice ?? product.basePrice ?? 0);
+    if (originalPrice <= 0 || salePrice <= 0 || salePrice >= originalPrice) {
+      return 0;
+    }
+
+    return Math.round((originalPrice - salePrice) * 100 / originalPrice);
+  }
+
+  hasDiscount(product: Product): boolean {
+    const originalPrice = this.originalPrice(product);
+    const salePrice = Number(product.salePrice ?? product.basePrice ?? 0);
+    return originalPrice > 0 && salePrice > 0 && salePrice < originalPrice && this.discountPercent(product) > 0;
   }
 
   formatPrice(price: number | string): string {

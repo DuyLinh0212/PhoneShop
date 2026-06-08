@@ -393,7 +393,7 @@ label small {
 
 table {
   width: 100%;
-  min-width: 1180px;
+  min-width: 1280px;
   border-collapse: collapse;
 }
 
@@ -419,7 +419,12 @@ td input {
 }
 
 td input[type='number'] {
-  width: 56px;
+  width: 92px;
+}
+
+.computed-price {
+  color: #dc2626;
+  font-weight: 800;
 }
 
 .variant-name {
@@ -459,6 +464,115 @@ td img {
   color: var(--danger);
 }
 
+.empty-variants {
+  height: 76px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.variant-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.42);
+}
+
+.variant-dialog {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+}
+
+.variant-dialog header,
+.variant-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.variant-dialog footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.variant-dialog header p,
+.variant-dialog header h2 {
+  margin: 0;
+}
+
+.variant-dialog header p {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.variant-dialog header h2 {
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.dialog-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.variant-error {
+  margin: 14px 18px 0;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.variant-dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px;
+}
+
+.variant-dialog input[type='color'] {
+  padding: 4px;
+}
+
+.variant-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 18px 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.variant-preview img {
+  width: 54px;
+  height: 64px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: cover;
+}
+
 @media (max-width: 1280px) {
   .form-grid {
     grid-template-columns: 1fr;
@@ -481,7 +595,8 @@ td img {
   }
 
   .two-col,
-  .image-list {
+  .image-list,
+  .variant-dialog-grid {
     grid-template-columns: 1fr;
   }
 }

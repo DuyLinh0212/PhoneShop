@@ -102,7 +102,7 @@
                     <span>{{ orderItemCount(order) }} sản phẩm</span>
                     <small>Tổng tiền</small>
                     <strong>{{ formatPrice(order.totalAmount) }}</strong>
-                    <button type="button">Xem chi tiết</button>
+                    <button type="button" (click)="openOrderDetail(order)">Xem chi tiết</button>
                     @if (order.status === 'pending' || order.status === 'confirmed') {
                       <button type="button" class="light-danger" (click)="cancelOrder(order)">Hủy đơn</button>
                     } @else if (order.status === 'delivered') {
@@ -122,12 +122,25 @@
           @if (profile.defaultAddress) {
             <div class="address-card">
               <strong>{{ profile.defaultAddress.fullName }}</strong>
-              <p>{{ profile.defaultAddress.street }}, {{ profile.defaultAddress.ward }}, {{ profile.defaultAddress.district }}, {{ profile.defaultAddress.province }}</p>
+              <p>{{ fullAddress(profile.defaultAddress) }}</p>
               <span>{{ profile.defaultAddress.phone }}</span>
             </div>
           } @else {
-            <p class="muted">Chưa có địa chỉ mặc định trong database.</p>
+            <p class="muted">Chưa có địa chỉ mặc định. Lưu địa chỉ bên dưới để tự điền khi đặt hàng.</p>
           }
+
+          <div class="address-form">
+            <label>Người nhận<input [(ngModel)]="addressForm.fullName" /></label>
+            <label>Số điện thoại<input [(ngModel)]="addressForm.phone" /></label>
+            <label>Tỉnh / thành<input [(ngModel)]="addressForm.province" /></label>
+            <label>Quận / huyện<input [(ngModel)]="addressForm.district" /></label>
+            <label>Phường / xã<input [(ngModel)]="addressForm.ward" /></label>
+            <label class="wide">Địa chỉ cụ thể<input [(ngModel)]="addressForm.street" /></label>
+          </div>
+
+          <div class="actions">
+            <button type="button" (click)="saveDefaultAddress()">Lưu địa chỉ mặc định</button>
+          </div>
         </section>
       } @else if (activeTab === 'security') {
         <section class="panel security-panel">
@@ -138,10 +151,88 @@
       } @else {
         <section class="panel">
           <h1>Sản phẩm yêu thích</h1>
-          <p class="muted">Chức năng yêu thích sẽ dùng bảng wishlists trong bước tiếp theo.</p>
+          @if (!favorites.length) {
+            <p class="muted">Chưa có sản phẩm yêu thích.</p>
+          } @else {
+            <div class="favorite-grid">
+              @for (product of favorites; track product.id) {
+                <article class="favorite-card">
+                  <a [routerLink]="['/products', product.id]">
+                    <img [src]="imageSrc(product.thumbnail)" [alt]="product.name" />
+                    <span>
+                      <b>{{ product.name }}</b>
+                      <strong>{{ formatPrice(favoritePrice(product)) }}</strong>
+                      @if (favoriteHasDiscount(product)) {
+                        <small>{{ formatPrice(favoriteOldPrice(product)) }}</small>
+                      }
+                    </span>
+                  </a>
+                  <button type="button" (click)="removeFavorite(product)">Bỏ yêu thích</button>
+                </article>
+              }
+            </div>
+          }
         </section>
       }
     </div>
+
+    @if (selectedOrder; as order) {
+      <div class="order-detail-backdrop" (click)="closeOrderDetail()">
+        <section class="order-detail-dialog" (click)="$event.stopPropagation()">
+          <header>
+            <div>
+              <p>Chi tiết đơn hàng</p>
+              <h2>#DH{{ order.id }}</h2>
+            </div>
+            <button type="button" aria-label="Đóng" (click)="closeOrderDetail()">×</button>
+          </header>
+
+          <div class="detail-columns">
+            <article>
+              <span>Trạng thái</span>
+              <strong [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</strong>
+            </article>
+            <article>
+              <span>Ngày đặt</span>
+              <strong>{{ formatDate(order.createdAt) }}</strong>
+            </article>
+            <article>
+              <span>Thanh toán</span>
+              <strong>{{ order.paymentMethod | uppercase }} / {{ order.paymentStatus }}</strong>
+            </article>
+          </div>
+
+          <section class="shipping-detail">
+            <h3>Thông tin nhận hàng</h3>
+            <p><b>{{ order.shippingName }}</b> - {{ order.shippingPhone }}</p>
+            <p>{{ order.shippingAddress }}</p>
+            @if (order.note) {
+              <p>Ghi chú: {{ order.note }}</p>
+            }
+          </section>
+
+          <section class="order-detail-items">
+            <h3>Sản phẩm</h3>
+            @for (item of order.items; track item.id) {
+              <div>
+                <span>
+                  <b>{{ item.productName }}</b>
+                  <small>{{ item.variantInfo || 'Phiên bản tiêu chuẩn' }}</small>
+                </span>
+                <em>x{{ item.quantity }}</em>
+                <strong>{{ formatPrice(item.subtotal) }}</strong>
+              </div>
+            }
+          </section>
+
+          <footer>
+            <span>Tạm tính <b>{{ formatPrice(orderSubtotal(order)) }}</b></span>
+            <span>Phí giao hàng <b>{{ formatPrice(order.shippingFee) }}</b></span>
+            <strong>Tổng thanh toán {{ formatPrice(order.totalAmount) }}</strong>
+          </footer>
+        </section>
+      </div>
+    }
   } @else {
     <p class="message">Đang tải hồ sơ...</p>
   }

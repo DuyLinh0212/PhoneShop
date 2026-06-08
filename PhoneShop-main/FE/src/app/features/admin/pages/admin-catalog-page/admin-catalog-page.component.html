@@ -1,26 +1,26 @@
 <section class="catalog-page">
   <header class="page-head">
     <div>
-      <p>Quan tri du lieu</p>
-      <h1>{{ data?.title || 'Dang tai...' }}</h1>
-      <span>{{ data?.description || 'Dong bo du lieu tu backend.' }}</span>
+      <p>Quản trị dữ liệu</p>
+      <h1>{{ data?.title || 'Đang tải...' }}</h1>
+      <span>{{ data?.description || 'Đồng bộ dữ liệu từ backend.' }}</span>
     </div>
-    <button type="button" (click)="loadResource()" [disabled]="loading">Tai lai</button>
+    <button type="button" (click)="loadResource()" [disabled]="loading">Tải lại</button>
   </header>
 
   @if (data) {
     <div class="stat-row">
       <div class="stat">
-        <span>Tong ban ghi</span>
+        <span>Tổng bản ghi</span>
         <strong>{{ data.stats['total'] || 0 }}</strong>
       </div>
       @if (data.stats['active'] !== undefined) {
         <div class="stat good">
-          <span>Dang bat</span>
+          <span>Đang bật</span>
           <strong>{{ data.stats['active'] }}</strong>
         </div>
         <div class="stat muted">
-          <span>Dang tat</span>
+          <span>Đang tắt</span>
           <strong>{{ data.stats['inactive'] }}</strong>
         </div>
       }
@@ -37,9 +37,9 @@
   <div class="work-grid">
     <section class="panel table-panel">
       <div class="panel-head">
-        <h2>Du lieu hien co</h2>
+        <h2>Dữ liệu hiện có</h2>
         @if (loading) {
-          <span>Dang tai...</span>
+          <span>Đang tải...</span>
         }
       </div>
 
@@ -50,7 +50,7 @@
               @for (column of visibleColumns; track column.key) {
                 <th>{{ column.label }}</th>
               }
-              <th>Thao tac</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -62,13 +62,13 @@
                   </td>
                 }
                 <td class="actions">
-                  <button type="button" (click)="editRow(row)">Sua</button>
-                  <button type="button" class="danger" (click)="deleteRow(row)">Tat</button>
+                  <button type="button" (click)="editRow(row)">Sửa</button>
+                  <button type="button" class="danger" (click)="deleteRow(row)">Tắt</button>
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td class="empty" [attr.colspan]="visibleColumns.length + 1">Chua co du lieu.</td>
+                <td class="empty" [attr.colspan]="visibleColumns.length + 1">Chưa có dữ liệu.</td>
               </tr>
             }
           </tbody>
@@ -78,9 +78,9 @@
 
     <aside class="panel editor-panel">
       <div class="panel-head">
-        <h2>{{ selectedRow ? 'Cap nhat ban ghi' : 'Them ban ghi' }}</h2>
+        <h2>{{ selectedRow ? 'Cập nhật bản ghi' : 'Thêm bản ghi' }}</h2>
         @if (selectedRow) {
-          <button type="button" class="ghost" (click)="resetForm()">Tao moi</button>
+          <button type="button" class="ghost" (click)="resetForm()">Tạo mới</button>
         }
       </div>
 
@@ -115,11 +115,11 @@
         }
 
         @if (!editableColumns.length) {
-          <p class="readonly-note">Chuc nang nay chi cho phep xem du lieu.</p>
+          <p class="readonly-note">Chức năng này chỉ cho phép xem dữ liệu.</p>
         }
 
         <button type="submit" class="save-btn" [disabled]="saving || !editableColumns.length">
-          {{ saving ? 'Dang luu...' : selectedRow ? 'Luu thay doi' : 'Them moi' }}
+          {{ saving ? 'Đang lưu...' : selectedRow ? 'Lưu thay đổi' : 'Thêm mới' }}
         </button>
       </form>
     </aside>

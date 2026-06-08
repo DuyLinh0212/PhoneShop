@@ -1,19 +1,25 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
+import { API_BASE_URL } from '../../../../core/constants/api.constants';
 import { Order, OrderService } from '../../../../core/services/order.service';
-import { Profile, ProfileService } from '../../../../core/services/profile.service';
+import { ProductDetail } from '../../../../core/services/product.service';
+import { AddressSummary, Profile, ProfileService } from '../../../../core/services/profile.service';
+import { WishlistService } from '../../../../core/services/wishlist.service';
 
 @Component({
   selector: 'app-profile-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.css'
 })
 export class ProfilePageComponent implements OnInit {
   profile: Profile | null = null;
   orders: Order[] = [];
+  favorites: ProductDetail[] = [];
+  selectedOrder: Order | null = null;
   activeTab: 'info' | 'orders' | 'address' | 'security' | 'favorites' = 'info';
   orderStatusFilter = 'all';
   orderSearch = '';
@@ -24,14 +30,25 @@ export class ProfilePageComponent implements OnInit {
     phone: ''
   };
 
+  addressForm = {
+    fullName: '',
+    phone: '',
+    province: '',
+    district: '',
+    ward: '',
+    street: ''
+  };
+
   constructor(
     private readonly profileService: ProfileService,
-    private readonly orderService: OrderService
+    private readonly orderService: OrderService,
+    private readonly wishlistService: WishlistService
   ) {}
 
   ngOnInit(): void {
     this.loadProfile();
     this.loadOrders();
+    this.loadFavorites();
   }
 
   loadOrders(): void {
@@ -44,10 +61,18 @@ export class ProfilePageComponent implements OnInit {
         this.profile = profile;
         this.form.fullName = profile.fullName;
         this.form.phone = profile.phone || '';
+        this.applyAddressForm(profile.defaultAddress);
       },
       error: () => {
         this.message = 'Không thể tải hồ sơ.';
       }
+    });
+  }
+
+  loadFavorites(): void {
+    this.wishlistService.getFavorites().subscribe({
+      next: (favorites) => (this.favorites = favorites),
+      error: () => (this.favorites = [])
     });
   }
 
@@ -86,6 +111,10 @@ export class ProfilePageComponent implements OnInit {
     return order.items.reduce((sum, item) => sum + item.quantity, 0);
   }
 
+  orderSubtotal(order: Order): number {
+    return order.items.reduce((sum, item) => sum + Number(item.subtotal ?? 0), 0);
+  }
+
   cancelOrder(order: Order): void {
     this.orderService.cancelOrder(order.id).subscribe({
       next: () => {
@@ -94,6 +123,44 @@ export class ProfilePageComponent implements OnInit {
       },
       error: (error) => {
         this.message = error?.error?.message ?? 'Không thể hủy đơn hàng.';
+      }
+    });
+  }
+
+  openOrderDetail(order: Order): void {
+    this.selectedOrder = order;
+  }
+
+  closeOrderDetail(): void {
+    this.selectedOrder = null;
+  }
+
+  saveDefaultAddress(): void {
+    this.profileService.saveDefaultAddress(this.addressForm).subscribe({
+      next: (address) => {
+        if (this.profile) {
+          this.profile = { ...this.profile, defaultAddress: address };
+        }
+        this.applyAddressForm(address);
+        this.message = 'Đã lưu địa chỉ giao hàng mặc định.';
+      },
+      error: (error) => {
+        this.message = error?.error?.message ?? 'Không thể lưu địa chỉ giao hàng.';
+      }
+    });
+  }
+
+  removeFavorite(product: ProductDetail): void {
+    this.wishlistService.removeFavorite(product.id).subscribe({
+      next: () => {
+        this.favorites = this.favorites.filter((item) => item.id !== product.id);
+        if (this.profile) {
+          this.profile = { ...this.profile, wishlistCount: this.favorites.length };
+        }
+        this.message = 'Đã bỏ sản phẩm khỏi danh sách yêu thích.';
+      },
+      error: (error) => {
+        this.message = error?.error?.message ?? 'Không thể bỏ yêu thích sản phẩm.';
       }
     });
   }
@@ -122,11 +189,52 @@ export class ProfilePageComponent implements OnInit {
     return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
   }
 
+  fullAddress(address: AddressSummary | null | undefined): string {
+    if (!address) {
+      return '';
+    }
+
+    return [address.street, address.ward, address.district, address.province].filter(Boolean).join(', ');
+  }
+
+  favoritePrice(product: ProductDetail): number {
+    return Number(product.salePrice ?? product.basePrice ?? 0);
+  }
+
+  favoriteOldPrice(product: ProductDetail): number {
+    return Number(product.originalPrice ?? product.basePrice ?? 0);
+  }
+
+  favoriteHasDiscount(product: ProductDetail): boolean {
+    const oldPrice = this.favoriteOldPrice(product);
+    const price = this.favoritePrice(product);
+    return oldPrice > 0 && price > 0 && price < oldPrice;
+  }
+
+  imageSrc(imageUrl?: string): string {
+    if (!imageUrl) {
+      return 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=300&q=80';
+    }
+
+    return imageUrl.startsWith('/uploads/') ? `${API_BASE_URL.replace('/api', '')}${imageUrl}` : imageUrl;
+  }
+
   formatPrice(price: number | string): string {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0
     }).format(Number(price));
+  }
+
+  private applyAddressForm(address: AddressSummary | null | undefined): void {
+    this.addressForm = {
+      fullName: address?.fullName || this.profile?.fullName || '',
+      phone: address?.phone || this.profile?.phone || '',
+      province: address?.province || '',
+      district: address?.district || '',
+      ward: address?.ward || '',
+      street: address?.street || ''
+    };
   }
 }

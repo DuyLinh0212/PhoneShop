@@ -39,6 +39,8 @@ export interface ProductVariantPayload {
   ram?: string;
   price: number;
   salePrice?: number | null;
+  costPrice?: number | null;
+  discountPercent?: number | null;
   stock?: number;
   sku?: string;
   isActive?: boolean;

@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 
 import { API_BASE_URL } from '../../../../core/constants/api.constants';
-import { ProductPayload, ProductService } from '../../../../core/services/product.service';
+import { Brand, Category, ProductPayload, ProductService } from '../../../../core/services/product.service';
 
 type ProductVariant = {
   color: string;
@@ -13,7 +14,8 @@ type ProductVariant = {
   sku: string;
   price: string;
   salePrice: string;
-  cost: string;
+  costPrice: string;
+  discountPercent: string;
   stock: number;
   image: string;
 };
@@ -34,16 +36,37 @@ export class ProductFormPageComponent {
   readonly productId = Number(this.route.snapshot.paramMap.get('id'));
   saving = false;
   uploadingImages = false;
+  catalogLoading = false;
+  variantDialogOpen = false;
+  editingVariantIndex: number | null = null;
+  variantError = '';
   errorMessage = '';
   successMessage = '';
+
+  brands: Brand[] = [
+    { id: 1, name: 'Apple' },
+    { id: 2, name: 'Samsung' },
+    { id: 3, name: 'Xiaomi' },
+    { id: 4, name: 'OPPO' },
+    { id: 5, name: 'Vivo' },
+    { id: 6, name: 'Realme' }
+  ];
+  categories: Category[] = [
+    { id: 1, name: 'Điện thoại', slug: 'dien-thoai' },
+    { id: 2, name: 'Phụ kiện', slug: 'phu-kien' },
+    { id: 3, name: 'Máy tính bảng', slug: 'may-tinh-bang' }
+  ];
 
   gallery: string[] = [];
 
   variants: ProductVariant[] = [];
+  variantDraft: ProductVariant = this.emptyVariantDraft();
 
   product = {
     name: '',
+    brandId: 1,
     brand: 'Apple',
+    categoryId: 1,
     category: 'Điện thoại',
     status: 'Đang kinh doanh',
     shortDescription: '',
@@ -59,6 +82,8 @@ export class ProductFormPageComponent {
   };
 
   ngOnInit(): void {
+    this.loadCatalogOptions();
+
     if (this.isEditMode && Number.isFinite(this.productId)) {
       this.productService.getProductDetail(this.productId).subscribe({
         next: (product) => {
@@ -66,8 +91,10 @@ export class ProductFormPageComponent {
           this.product.slug = product.slug;
           this.product.shortDescription = product.description || '';
           this.product.detail = product.description || '';
+          this.product.brandId = product.brandId;
+          this.product.categoryId = product.categoryId;
           this.product.brand = this.brandName(product.brandId);
-          this.product.category = product.categoryId === 2 ? 'Phụ kiện' : (product.categoryId === 3 ? 'Máy tính bảng' : 'Điện thoại');
+          this.product.category = this.categoryName(product.categoryId);
           this.product.status = product.isActive ? 'Đang kinh doanh' : 'Ngừng kinh doanh';
           this.product.seoTitle = `${product.name} | PhoneStore`;
           this.product.seoDescription = product.description || '';
@@ -75,18 +102,29 @@ export class ProductFormPageComponent {
           this.product.manufacturer = product.name.split(' ')[0] || '';
           this.gallery = (product.images ?? []).map((img) => img.imageUrl).filter(Boolean);
           this.variants = (product.variants ?? []).map((v) => ({
-            color: '#888888',
-            name: v.color || '',
-            sku: v.sku || '',
-            price: String(v.price ?? 0),
-            salePrice: String(v.salePrice ?? 0),
-            cost: '0',
-            stock: v.stock ?? 0,
+            ...this.variantFromApi(v),
             image: this.gallery[0] || ''
           }));
         }
       });
     }
+  }
+
+  private variantFromApi(v: any): ProductVariant {
+    const price = Number(v.price ?? 0);
+    const discountPercent = this.percentFromApiVariant(v);
+    const salePrice = this.discountedPrice(price, discountPercent);
+    return {
+      color: '#888888',
+      name: v.color || '',
+      sku: v.sku || '',
+      price: String(price),
+      salePrice: discountPercent > 0 ? String(salePrice) : '',
+      costPrice: String(v.costPrice ?? 0),
+      discountPercent: String(discountPercent),
+      stock: v.stock ?? 0,
+      image: ''
+    };
   }
 
   onNameInput(): void {
@@ -135,6 +173,56 @@ export class ProductFormPageComponent {
     this.gallery = [selected, ...this.gallery.filter((_, currentIndex) => currentIndex !== index)];
   }
 
+  openVariantDialog(index?: number): void {
+    this.variantError = '';
+    if (typeof index === 'number') {
+      const variant = this.variants[index];
+      if (!variant) {
+        return;
+      }
+      this.editingVariantIndex = index;
+      this.variantDraft = { ...variant };
+      this.variantDialogOpen = true;
+      return;
+    }
+
+    this.editingVariantIndex = null;
+    this.variantDraft = this.emptyVariantDraft();
+    this.variantDialogOpen = true;
+  }
+
+  closeVariantDialog(): void {
+    this.variantDialogOpen = false;
+    this.editingVariantIndex = null;
+    this.variantError = '';
+  }
+
+  saveVariantDialog(): void {
+    const normalized = this.normalizeVariantDraft();
+    if (!normalized) {
+      return;
+    }
+
+    if (this.editingVariantIndex === null) {
+      this.variants = [...this.variants, normalized];
+    } else {
+      this.variants = this.variants.map((variant, index) =>
+        index === this.editingVariantIndex ? normalized : variant
+      );
+    }
+
+    this.closeVariantDialog();
+    this.persistVariantChanges();
+  }
+
+  deleteVariant(index: number): void {
+    if (!window.confirm('Xóa biến thể này?')) {
+      return;
+    }
+    this.variants = this.variants.filter((_, currentIndex) => currentIndex !== index);
+    this.persistVariantChanges();
+  }
+
   imageSrc(imageUrl: string): string {
     if (imageUrl.startsWith('/uploads/')) {
       return `${API_BASE_URL.replace('/api', '')}${imageUrl}`;
@@ -145,6 +233,10 @@ export class ProductFormPageComponent {
 
   saveProduct(continueEditing: boolean): void {
     const payload = this.toPayload();
+    if (!payload) {
+      return;
+    }
+
     this.saving = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -163,6 +255,63 @@ export class ProductFormPageComponent {
           return;
         }
         this.router.navigate(['/admin/products']);
+      },
+      error: (error) => {
+        this.saving = false;
+        this.errorMessage = this.resolveSaveError(error);
+      }
+    });
+  }
+
+  private loadCatalogOptions(): void {
+    this.catalogLoading = true;
+
+    forkJoin({
+      brands: this.productService.getBrands(),
+      categories: this.productService.getCategories()
+    }).subscribe({
+      next: ({ brands, categories }) => {
+        this.brands = brands.filter((brand) => brand.isActive !== false);
+        this.categories = categories.filter((category) => category.isActive !== false);
+
+        if (!this.brands.some((brand) => brand.id === this.product.brandId) && this.brands[0]) {
+          this.product.brandId = this.brands[0].id;
+          this.product.brand = this.brands[0].name;
+        }
+
+        if (!this.categories.some((category) => category.id === this.product.categoryId) && this.categories[0]) {
+          this.product.categoryId = this.categories[0].id;
+          this.product.category = this.categories[0].name;
+        }
+      },
+      error: () => {
+        this.errorMessage = 'Không thể tải danh sách thương hiệu/danh mục. Vui lòng kiểm tra backend.';
+      },
+      complete: () => {
+        this.catalogLoading = false;
+      }
+    });
+  }
+
+  private persistVariantChanges(): void {
+    if (!this.isEditMode || !Number.isFinite(this.productId)) {
+      this.successMessage = 'Đã thêm biến thể vào form. Bấm “Lưu sản phẩm” để lưu xuống hệ thống.';
+      return;
+    }
+
+    const payload = this.toPayload();
+    if (!payload) {
+      return;
+    }
+
+    this.saving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.productService.updateProduct(this.productId, payload).subscribe({
+      next: () => {
+        this.saving = false;
+        this.successMessage = 'Đã lưu biến thể vào sản phẩm.';
       },
       error: (error) => {
         this.saving = false;
@@ -223,28 +372,105 @@ export class ProductFormPageComponent {
     });
   }
 
-  private toPayload(): ProductPayload {
+  private emptyVariantDraft(): ProductVariant {
+    return {
+      color: '#111827',
+      name: '',
+      sku: '',
+      price: '',
+      salePrice: '',
+      costPrice: '',
+      discountPercent: '0',
+      stock: 0,
+      image: this.gallery[0] || ''
+    };
+  }
+
+  private normalizeVariantDraft(): ProductVariant | null {
+    const name = this.variantDraft.name.trim();
+    const price = this.parsePrice(this.variantDraft.price);
+    const costPrice = this.variantDraft.costPrice === '' ? 0 : this.parsePrice(this.variantDraft.costPrice);
+    const discountPercent = this.parsePercent(this.variantDraft.discountPercent);
+    const salePrice = this.discountedPrice(price, discountPercent);
+    const stock = Number(this.variantDraft.stock ?? 0);
+
+    if (!name) {
+      this.variantError = 'Vui lòng nhập tên biến thể.';
+      return null;
+    }
+
+    if (!Number.isFinite(price) || price <= 0) {
+      this.variantError = 'Giá bán phải lớn hơn 0.';
+      return null;
+    }
+
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      this.variantError = 'Giá nhập không hợp lệ.';
+      return null;
+    }
+
+    if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+      this.variantError = 'Khuyến mãi phải từ 0 đến 100%.';
+      return null;
+    }
+
+    if (!Number.isFinite(stock) || stock < 0) {
+      this.variantError = 'Tồn kho không được âm.';
+      return null;
+    }
+
+    return {
+      color: this.variantDraft.color || '#111827',
+      name,
+      sku: this.variantDraft.sku.trim(),
+      price: String(price),
+      salePrice: discountPercent > 0 ? String(salePrice) : '',
+      costPrice: this.variantDraft.costPrice === '' ? '' : String(costPrice),
+      discountPercent: String(discountPercent),
+      stock,
+      image: this.variantDraft.image || this.gallery[0] || ''
+    };
+  }
+
+  private toPayload(): ProductPayload | null {
+    const brandId = this.brandId(this.product.brandId);
+    const categoryId = this.categoryId(this.product.categoryId);
+    if (!brandId) {
+      this.errorMessage = 'Không tìm thấy thương hiệu hợp lệ. Vui lòng tải lại trang rồi chọn lại thương hiệu.';
+      return null;
+    }
+    if (!categoryId) {
+      this.errorMessage = 'Không tìm thấy danh mục hợp lệ. Vui lòng tải lại trang rồi chọn lại danh mục.';
+      return null;
+    }
+
     const ts = Date.now();
     return {
-      brandId: this.brandId(this.product.brand),
-      categoryId: this.categoryId(this.product.category),
+      brandId,
+      categoryId,
       name: this.product.name,
       slug: this.product.slug || this.toSlug(this.product.name),
       description: this.product.detail || this.product.shortDescription,
-      basePrice: this.parsePrice(this.variants[0]?.salePrice || this.variants[0]?.price),
+      basePrice: this.variants[0] ? this.variantFinalPrice(this.variants[0]) : 0,
       thumbnail: this.gallery[0] || undefined,
       isActive: this.product.status === 'Đang kinh doanh',
       isFeatured: true,
-      variants: this.variants.map((variant, i) => ({
-        color: variant.name,
-        storage: this.extractStorage(variant.name),
-        price: this.parsePrice(variant.price),
-        salePrice: this.parsePrice(variant.salePrice),
-        stock: variant.stock,
-        // Thêm timestamp vào SKU khi tạo mới để đảm bảo không trùng
-        sku: this.isEditMode ? variant.sku : `${variant.sku || 'VAR'}-${ts}-${i}`,
-        isActive: true
-      })),
+      variants: this.variants.map((variant, i) => {
+        const price = this.parsePrice(variant.price);
+        const discountPercent = this.parsePercent(variant.discountPercent);
+        return {
+          color: variant.name,
+          storage: this.extractStorage(variant.name),
+          price,
+          salePrice: discountPercent > 0 ? this.discountedPrice(price, discountPercent) : null,
+          costPrice: this.parsePrice(variant.costPrice),
+          discountPercent,
+          stock: variant.stock,
+          // Thêm timestamp vào SKU khi tạo mới để đảm bảo không trùng
+          sku: this.isEditMode ? variant.sku : `${variant.sku || 'VAR'}-${ts}-${i}`,
+          isActive: true
+        };
+      }),
       images: this.gallery.map((imageUrl, index) => ({
         imageUrl,
         altText: `${this.product.name} ${index + 1}`,
@@ -259,40 +485,20 @@ export class ProductFormPageComponent {
     };
   }
 
-  private brandId(brandName: string): number {
-    const brandIds: Record<string, number> = {
-      Apple: 1,
-      Samsung: 2,
-      Xiaomi: 3,
-      OPPO: 4,
-      Vivo: 5,
-      Realme: 6
-    };
-
-    return brandIds[brandName] ?? 1;
+  private brandId(brandId: number): number | null {
+    return this.brands.some((brand) => brand.id === brandId) ? brandId : null;
   }
 
   private brandName(brandId: number): string {
-    const brandNames: Record<number, string> = {
-      1: 'Apple',
-      2: 'Samsung',
-      3: 'Xiaomi',
-      4: 'OPPO',
-      5: 'Vivo',
-      6: 'Realme'
-    };
-
-    return brandNames[brandId] ?? 'Apple';
+    return this.brands.find((brand) => brand.id === brandId)?.name ?? this.product.brand;
   }
 
-  private categoryId(categoryName: string): number {
-    const categoryIds: Record<string, number> = {
-      'Điện thoại': 1,
-      'Phụ kiện': 2,
-      'Máy tính bảng': 3
-    };
+  private categoryId(categoryId: number): number | null {
+    return this.categories.some((category) => category.id === categoryId) ? categoryId : null;
+  }
 
-    return categoryIds[categoryName] ?? 1;
+  private categoryName(categoryId: number): string {
+    return this.categories.find((category) => category.id === categoryId)?.name ?? this.product.category;
   }
 
   private parsePrice(value: string | number | undefined): number {
@@ -301,6 +507,60 @@ export class ProductFormPageComponent {
     }
 
     return Number((value || '0').replace(/\./g, ''));
+  }
+
+  parsePercent(value: string | number | undefined): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    return Number((value || '0').replace(',', '.'));
+  }
+
+  variantFinalPrice(variant: ProductVariant): number {
+    const price = this.parsePrice(variant.price);
+    const discountPercent = this.parsePercent(variant.discountPercent);
+    return this.discountedPrice(price, discountPercent);
+  }
+
+  formatPrice(price: number | string): string {
+    const numericPrice = Number(price);
+    if (Number.isNaN(numericPrice)) {
+      return `${price} VND`;
+    }
+
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0
+    }).format(numericPrice);
+  }
+
+  private discountedPrice(price: number, discountPercent: number): number {
+    if (!Number.isFinite(price)) {
+      return 0;
+    }
+
+    if (!Number.isFinite(discountPercent) || discountPercent <= 0) {
+      return price;
+    }
+
+    return Math.round(price * (100 - discountPercent) / 100);
+  }
+
+  private percentFromApiVariant(variant: { price?: number | null; salePrice?: number | null; discountPercent?: number | null }): number {
+    const explicitPercent = Number(variant.discountPercent ?? 0);
+    if (Number.isFinite(explicitPercent) && explicitPercent > 0) {
+      return explicitPercent;
+    }
+
+    const price = Number(variant.price ?? 0);
+    const salePrice = Number(variant.salePrice ?? 0);
+    if (!Number.isFinite(price) || !Number.isFinite(salePrice) || price <= 0 || salePrice <= 0 || salePrice >= price) {
+      return 0;
+    }
+
+    return Math.round(((price - salePrice) * 100 / price) * 100) / 100;
   }
 
   private extractStorage(name: string): string {
